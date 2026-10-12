@@ -12,6 +12,8 @@ import { buildTree, descendantIds, flattenTree } from "@/core/tree";
 import { cardOrdinals, cleanFields, searchText, sortField } from "@/core/notes";
 import { NOTE_TYPES, type NoteFields, type NoteType } from "@/core/types";
 import { SLUG_RE, expiryFromDays, generateSlug, isShareActive, mediaUrlsIn } from "@/core/share";
+import { getNoteType, getNoteTypesByIds, importNoteTypes } from "../repo/notetypes";
+import type { NoteTypeDef } from "@/core/notetypes";
 
 type Row = Record<string, unknown>;
 const statusError = (status: number, code: string) => Object.assign(new Error(code), { status });
@@ -101,7 +103,7 @@ export async function getPublicShare(slug: string, opts: { now?: Date; countView
   const counts = await q(`SELECT n.deck_id, count(DISTINCT n.id)::int AS notes, count(c.id)::int AS cards FROM ak_notes n LEFT JOIN ak_cards c ON c.note_id = n.id
     WHERE n.user_id = $1 AND n.deck_id = ANY($2::int[]) AND n.deleted_at IS NULL GROUP BY n.deck_id`, [s.ownerId, ids]);
   const byDeck = new Map(counts.map((r) => [Number(r.deck_id), { notes: Number(r.notes), cards: Number(r.cards) }]));
-  const sampleRows = await q(`SELECT type, fields, tags FROM ak_notes WHERE user_id = $1 AND deck_id = ANY($2::int[]) AND deleted_at IS NULL
+  const sampleRows = await q(`SELECT type, fields, tags, sort_field FROM ak_notes WHERE user_id = $1 AND deck_id = ANY($2::int[]) AND deleted_at IS NULL
     ORDER BY array_position($2::int[], deck_id), position, id LIMIT $3`, [s.ownerId, ids, Math.max(0, Math.min(20, opts.sampleLimit ?? SAMPLE_LIMIT))]);
   if (opts.countView !== false) await q("UPDATE ak_shares SET view_count = view_count + 1 WHERE id = $1", [s.id]);
   const deckOut = decks.map((d) => ({ name: d.name, path: d.path, depth: d.depth, notes: byDeck.get(d.id)?.notes ?? 0, cards: byDeck.get(d.id)?.cards ?? 0 }));
@@ -110,7 +112,13 @@ export async function getPublicShare(slug: string, opts: { now?: Date; countView
     noteCount: deckOut.reduce((a, d) => a + d.notes, 0), cardCount: deckOut.reduce((a, d) => a + d.cards, 0), decks: deckOut,
     samples: sampleRows.map((r) => {
       const type = (NOTE_TYPES.includes(r.type as NoteType) ? r.type : "basic") as NoteType;
-      const fields = (r.fields ?? {}) as NoteFields;
+      let fields = (r.fields ?? {}) as NoteFields;
+      if (r.type === "custom") { // preview only: sort field as the front, the other values as the back
+        const sf = String(r.sort_field ?? "");
+        const v = Object.values(fields.custom ?? {}).filter((x) => typeof x === "string" && x.trim());
+        const i = v.findIndex((x) => x.replace(/<[^>]*>/g, "").trim() === sf.trim());
+        fields = { front: i >= 0 ? v[i] : sf, back: v.filter((_, j) => j !== i).join("\n\n") };
+      }
       return { type, fields, ord: cardOrdinals(type, fields)[0] ?? 0, tags: (r.tags as string[]) ?? [] };
     }),
   };
@@ -129,7 +137,7 @@ export async function cloneShare(uid: number, slug: string, opts: { now?: Date; 
 
   const decks = await subtree(s.ownerId, s.deckId);
   const ids = decks.map((d) => d.id);
-  const notes = await q(`SELECT deck_id, guid, type, fields, tags, position FROM ak_notes WHERE user_id = $1 AND deck_id = ANY($2::int[]) AND deleted_at IS NULL
+  const notes = await q(`SELECT deck_id, guid, type, notetype_id, fields, tags, position FROM ak_notes WHERE user_id = $1 AND deck_id = ANY($2::int[]) AND deleted_at IS NULL
     ORDER BY position, id LIMIT $3`, [s.ownerId, ids, limits.maxNotes + 1]);
   if (notes.length > limits.maxNotes) throw statusError(413, "share_too_large");
 
@@ -146,6 +154,11 @@ export async function cloneShare(uid: number, slug: string, opts: { now?: Date; 
   }
 
   let added = 0, cardCount = 0;
+  // custom note types used by the shared notes are copied (or reused when identical) into the cloner's account
+  const ntSrc = [...new Set(fresh.filter((n) => n.type === "custom" && n.notetype_id != null).map((n) => Number(n.notetype_id)))];
+  const ntMap = ntSrc.length ? await importNoteTypes(uid, [...(await getNoteTypesByIds(s.ownerId, ntSrc)).values()]) : {};
+  const ntDefs = new Map<number, NoteTypeDef>();
+  for (const id of new Set(Object.values(ntMap))) { const d = await getNoteType(uid, id); if (d) ntDefs.set(id, d); }
   if (fresh.length) {
     const map = new Map<number, number>();
     const mine = (await listDecks(uid)).filter((d) => !d.filtered);
@@ -161,18 +174,23 @@ export async function cloneShare(uid: number, slug: string, opts: { now?: Date; 
     }
     for (let i = 0; i < fresh.length; i += 500) {
       const chunk = fresh.slice(i, i + 500).map((n) => {
-        const type = (NOTE_TYPES.includes(n.type as NoteType) ? n.type : "basic") as NoteType;
-        const fields = cleanFields(type, (n.fields ?? {}) as NoteFields);
-        return { deck_id: map.get(Number(n.deck_id))!, guid: String(n.guid), type, fields, tags: (n.tags as string[]) ?? [], position: Number(n.position), sort_field: sortField(type, fields), search_text: searchText(type, fields) };
+        const ntId = n.type === "custom" && n.notetype_id != null ? ntMap[Number(n.notetype_id)] : undefined;
+        const nt = ntId != null ? ntDefs.get(ntId) ?? null : null;
+        let type = (NOTE_TYPES.includes(n.type as NoteType) ? n.type : "basic") as NoteType;
+        let raw = (n.fields ?? {}) as NoteFields;
+        if (nt) type = "custom";
+        else if (n.type === "custom") { const v = Object.values(raw.custom ?? {}); raw = { front: v[0] ?? "", back: v.slice(1).filter(Boolean).join("\n\n") }; } // type missing: keep content as Basic
+        const fields = cleanFields(type, raw, nt);
+        return { deck_id: map.get(Number(n.deck_id))!, guid: String(n.guid), type, notetype_id: nt ? Number(nt.id) : null, nt, fields, tags: (n.tags as string[]) ?? [], position: Number(n.position), sort_field: sortField(type, fields, nt), search_text: searchText(type, fields) };
       });
-      const rows = await q(`INSERT INTO ak_notes (user_id, deck_id, guid, type, fields, tags, position, sort_field, search_text)
-        SELECT $1, x.deck_id, x.guid, x.type, x.fields, ARRAY(SELECT jsonb_array_elements_text(x.tags)), x.position, x.sort_field, x.search_text
-        FROM jsonb_to_recordset($2::jsonb) AS x(deck_id int, guid text, type text, fields jsonb, tags jsonb, position float8, sort_field text, search_text text)
-        ON CONFLICT (user_id, guid) DO NOTHING RETURNING id, guid`, [uid, JSON.stringify(chunk)]);
+      const rows = await q(`INSERT INTO ak_notes (user_id, deck_id, guid, type, notetype_id, fields, tags, position, sort_field, search_text)
+        SELECT $1, x.deck_id, x.guid, x.type, x.notetype_id, x.fields, ARRAY(SELECT jsonb_array_elements_text(x.tags)), x.position, x.sort_field, x.search_text
+        FROM jsonb_to_recordset($2::jsonb) AS x(deck_id int, guid text, type text, notetype_id int, fields jsonb, tags jsonb, position float8, sort_field text, search_text text)
+        ON CONFLICT (user_id, guid) DO NOTHING RETURNING id, guid`, [uid, JSON.stringify(chunk.map((x) => ({ ...x, nt: undefined })))]);
       const byGuid = new Map(rows.map((r) => [String(r.guid), Number(r.id)]));
       const cardPayload = chunk.flatMap((n) => {
         const noteId = byGuid.get(n.guid);
-        return noteId ? cardOrdinals(n.type, n.fields).map((ord) => ({ note_id: noteId, deck_id: n.deck_id, ord, position: n.position })) : [];
+        return noteId ? cardOrdinals(n.type, n.fields, n.nt).map((ord) => ({ note_id: noteId, deck_id: n.deck_id, ord, position: n.position })) : [];
       });
       added += rows.length;
       if (cardPayload.length) {

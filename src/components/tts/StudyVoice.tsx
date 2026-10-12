@@ -7,14 +7,14 @@ import { cx } from "@/components/ui";
 import { api } from "@/lib/api";
 import { ta } from "@/lib/i18n-ai";
 import { speakSegments, stopSpeaking, ttsSupported } from "@/lib/tts";
-import { deckChain, extractAudioUrls, parseTtsSegments, resolveTtsOptions, type TtsOptions } from "@/core/tts";
+import { deckChain, extractAudioUrls, parseTtsSegments, resolveTtsOptions, ttsNoteTypeKey, type TtsOptions } from "@/core/tts";
 import { RecordPanel } from "./RecordPanel";
 
 type TtsData = { scopes: Record<string, TtsOptions>; deckParents: Record<number, number | null> };
 let cache: Promise<TtsData> | null = null;
 export const loadTtsSettings = (fresh = false) => { if (!cache || fresh) cache = api<TtsData>("/api/tts/settings").catch(() => { cache = null; return { scopes: {}, deckParents: {} }; }); return cache; };
 
-export interface VoiceCard { cardId: number; type: string; deckId?: number; kind: string; front: string; back: string; options?: string[]; showFrontOnBack?: boolean }
+export interface VoiceCard { cardId: number; type: string; deckId?: number; kind: string; front: string; back: string; options?: string[]; showFrontOnBack?: boolean; custom?: { noteType: { id: number | string } } }
 
 const frontText = (c: VoiceCard) => c.kind === "mcq" && c.options?.length ? `${c.front}\n\n${c.options.map((o, i) => `${String.fromCharCode(65 + i)}. ${o}`).join("\n")}` : c.front;
 
@@ -29,8 +29,8 @@ export function StudyVoice({ deckId, card, revealed, toolClass }: { deckId: numb
   const opts = useMemo(() => {
     if (!data) return null;
     const chain = [...new Set([...deckChain(card.deckId, data.deckParents), ...deckChain(deckId, data.deckParents)])];
-    return resolveTtsOptions(data.scopes, { decks: chain, noteType: card.type });
-  }, [data, card.deckId, card.type, deckId]);
+    return resolveTtsOptions(data.scopes, { decks: chain, noteType: ttsNoteTypeKey(card.type, card.custom?.noteType.id) });
+  }, [data, card.deckId, card.type, card.custom?.noteType.id, deckId]);
 
   const speak = useCallback(async (side: "front" | "back") => {
     if (!opts || !supported) return;

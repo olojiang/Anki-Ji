@@ -12,6 +12,7 @@ import { dayIndex, dayStart } from "../time";
 import { stripMarkup } from "../notes";
 import { descendantIds } from "../tree";
 import type { NoteFields } from "../types";
+import { customExportersFor, exporterKeyFor } from "../interop/custom";
 import { MODEL_BASIC, STOCK_EXPORTERS, type ExportContext, type ModelDefinition, type NoteTypeExporter, type AnkiNotePart } from "../interop/models";
 
 export interface ExportMedia { url: string; filename: string; bytes: Uint8Array }
@@ -225,7 +226,7 @@ export async function exportApkg(input: ApkgExportInput): Promise<{ bytes: Uint8
   const settings = (backup.settings ?? {}) as { timezone?: string; rolloverHour?: number };
   const tz = typeof settings.timezone === "string" && settings.timezone ? settings.timezone : "UTC";
   const rollover = Number.isInteger(settings.rolloverHour) ? Number(settings.rolloverHour) : 4;
-  const exporters = { ...DEFAULT_EXPORTERS, ...(input.exporters ?? {}) };
+  const exporters: Record<string, NoteTypeExporter> = { ...DEFAULT_EXPORTERS, ...customExportersFor(backup.noteTypes), ...(input.exporters ?? {}) };
 
   // --- which decks / notes / cards ---
   const liveDecks = backup.decks.filter((d) => !d.filtered);
@@ -315,7 +316,8 @@ export async function exportApkg(input: ApkgExportInput): Promise<{ bytes: Uint8
     let newPos = 0;
 
     for (const n of [...notes].sort((a, b) => a.position - b.position || a.id - b.id)) {
-      const exporter = exporters[n.type] ?? exporters.basic;
+      const exporter = exporters[exporterKeyFor(n)] ?? (n.type === "custom" ? null : exporters.basic);
+      if (!exporter) continue; // custom note whose note type is missing from the backup
       const ncards = (cardsByNote.get(n.id) ?? []).sort((a, b) => a.ord - b.ord);
       if (!ncards.length) continue;
       const parts = exporter.toAnki(n.fields as NoteFields, ncards.map((c) => c.ord), ctx);

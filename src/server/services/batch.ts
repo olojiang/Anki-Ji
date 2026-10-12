@@ -39,7 +39,7 @@ async function loadNotes(uid: number, ids: number[]): Promise<Note[]> {
 
 /* ─────────── undo snapshots ─────────── */
 async function snapshot(uid: number, kind: string, noteIds: number[], opts: { revlogNoteIds?: number[]; summary?: Record<string, unknown> } = {}): Promise<number> {
-  const notes = await q("SELECT id, type, fields, tags, sort_field, search_text, deleted_at FROM ak_notes WHERE user_id = $1 AND id = ANY($2::int[])", [uid, noteIds]);
+  const notes = await q("SELECT id, type, notetype_id, fields, tags, sort_field, search_text, deleted_at FROM ak_notes WHERE user_id = $1 AND id = ANY($2::int[])", [uid, noteIds]);
   const cards = await q(`SELECT ${CARD_COLUMNS.join(", ")} FROM ak_cards WHERE user_id = $1 AND note_id = ANY($2::int[])`, [uid, noteIds]);
   const rl = opts.revlogNoteIds?.length
     ? await q(`SELECT ${REVLOG_COLUMNS.map((c) => `r.${c}`).join(", ")} FROM ak_revlog r JOIN ak_cards c ON c.id = r.card_id WHERE r.user_id = $1 AND c.note_id = ANY($2::int[])`, [uid, opts.revlogNoteIds])
@@ -56,7 +56,7 @@ export async function undoBatch(uid: number, id: number): Promise<{ restored: nu
   if (!row) throw new NotFoundError("undo_not_found");
   const payload = (typeof row.payload === "string" ? JSON.parse(row.payload) : row.payload) as { notes: { id: number }[]; cards: { id: number }[]; revlog: unknown[] };
   const noteIds = payload.notes.map((n) => Number(n.id));
-  await q(`UPDATE ak_notes n SET type = s.type, fields = s.fields, tags = s.tags, sort_field = s.sort_field, search_text = s.search_text, deleted_at = s.deleted_at, updated_at = now()
+  await q(`UPDATE ak_notes n SET type = s.type, notetype_id = s.notetype_id, fields = s.fields, tags = s.tags, sort_field = s.sort_field, search_text = s.search_text, deleted_at = s.deleted_at, updated_at = now()
            FROM jsonb_populate_recordset(NULL::ak_notes, $2::jsonb) s WHERE n.user_id = $1 AND n.id = s.id`, [uid, JSON.stringify(payload.notes)]);
   await q("DELETE FROM ak_cards WHERE user_id = $1 AND note_id = ANY($2::int[]) AND NOT (id = ANY($3::int[]))", [uid, noteIds, payload.cards.map((c) => Number(c.id))]);
   if (payload.cards.length) {
@@ -94,6 +94,7 @@ export async function findReplace(uid: number, target: Target, spec: ReplaceSpec
   for (const n of notes) {
     const r = replaceInNote(n.type, n.fields, spec, re);
     if (!r.count) continue;
+    if (n.type === "custom") { matches += r.count; individually.push({ id: n.id, fields: r.fields }); continue; } // repo validates against the note type
     const fields = cleanFields(n.type, r.fields);
     const err = validateNote(n.type, fields);
     if (err) { skipped.push({ id: n.id, error: err }); continue; }
@@ -110,8 +111,11 @@ export async function findReplace(uid: number, target: Target, spec: ReplaceSpec
     await q(`UPDATE ak_notes n SET fields = s.fields, sort_field = s.sort_field, search_text = s.search_text, updated_at = now()
              FROM jsonb_to_recordset($2::jsonb) AS s(id int, fields jsonb, sort_field text, search_text text) WHERE n.user_id = $1 AND n.id = s.id`, [uid, JSON.stringify(bulk)]);
   }
-  for (const b of individually) await updateNote(uid, b.id, { fields: b.fields });
-  return { ...pv, changed: changedIds.length, matches, skipped, undoId };
+  let failed = 0;
+  for (const b of individually) {
+    try { await updateNote(uid, b.id, { fields: b.fields }); } catch (e) { failed++; skipped.push({ id: b.id, error: e instanceof Error ? e.message : "invalid" }); }
+  }
+  return { ...pv, changed: changedIds.length - failed, matches, skipped, undoId };
 }
 
 /* ─────────── duplicates ─────────── */

@@ -38,6 +38,19 @@ export function normalizeTtsOptions(i: Partial<TtsOptions> | null | undefined): 
 
 export const ttsScopeValid = (s: string) => s === "default" || /^deck:\d{1,10}$/.test(s) || /^type:[A-Za-z0-9_-]{1,64}$/.test(s);
 
+/** Note-type part of a TTS scope: built-in types by name, custom note types by id (`nt-<id>`). */
+export const ttsNoteTypeKey = (type: string, notetypeId?: number | string | null) => (type === "custom" && notetypeId != null ? `nt-${notetypeId}` : type);
+/** Full scope key for a note type, e.g. "type:basic" or "type:nt-12". */
+export const ttsTypeKey = (type: string, notetypeId?: number | string | null) => `type:${ttsNoteTypeKey(type, notetypeId)}`;
+
+/** A template {{tts lang:Field}} element (rendered as .ak-tts with data-tts-lang) → speech segments for the shared speech lib. */
+export function templateTtsSegments(text: string, lang: string | undefined | null): TtsSegment[] {
+  const t = speakableText(text ?? "");
+  if (!t) return [];
+  const l = normalizeLang(lang ?? "");
+  return [{ text: t, lang: l === "auto" ? detectLang(t) : l }];
+}
+
 /** Deck id followed by its ancestors (cycle-safe). */
 export function deckChain(deckId: number | null | undefined, parents: Record<number, number | null | undefined>): number[] {
   const out: number[] = [];

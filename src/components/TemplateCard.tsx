@@ -13,6 +13,8 @@ import { tn } from "@/lib/i18n-notetypes";
 import { useApp } from "./providers";
 import { cx } from "./ui";
 import type { RenderedCard } from "@/core/notes";
+import { speakSegments, ttsSupported } from "@/lib/tts";
+import { templateTtsSegments } from "@/core/tts";
 
 const BASE_CSS = (s: string) => `
 ${s} { text-align: center; }
@@ -63,12 +65,9 @@ export function TemplateCard({ card, revealed, typeSlot, className }: {
 
   const onClick = (e: React.MouseEvent) => {
     const el = (e.target as HTMLElement).closest(".ak-tts") as HTMLElement | null;
-    if (!el || typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    const u = new SpeechSynthesisUtterance(el.textContent ?? "");
-    const lang = el.dataset.ttsLang;
-    if (lang) u.lang = lang.replace("_", "-");
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(u);
+    if (!el || !ttsSupported()) return;
+    // shared speech lib (feat/ai-tts): voice picking by language + stop/replace semantics like the study speaker
+    void speakSegments(templateTtsSegments(el.textContent ?? "", el.dataset.ttsLang));
   };
 
   return (

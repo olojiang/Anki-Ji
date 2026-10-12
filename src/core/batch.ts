@@ -26,7 +26,7 @@ const TEXT_FIELDS: Record<NoteType, string[]> = {
   cloze: ["text", "extra"], mcq: ["question", "options", "explanation"], image_occlusion: ["header", "extra"],
   custom: [], // custom note fields live in fields.custom (keyed by field id), handled separately
 };
-export const ALL_TEXT_FIELDS = ["front", "back", "text", "extra", "question", "options", "explanation", "header"];
+export const ALL_TEXT_FIELDS = ["front", "back", "text", "extra", "question", "options", "explanation", "header", "custom"];
 export const noteTextFields = (type: NoteType): string[] => TEXT_FIELDS[type] ?? ["front", "back"];
 
 function replaceString(s: string, re: RegExp, spec: ReplaceSpec): { out: string; n: number } {
@@ -42,7 +42,22 @@ function expand(tpl: string, match: string, groups: (string | undefined)[]): str
   return tpl.replace(/\$(\$|&|\d{1,2})/g, (_, k: string) => (k === "$" ? "$" : k === "&" ? match : groups[Number(k) - 1] ?? ""));
 }
 
+/** Custom note types keep values in `fields.custom` keyed by field id; spec fields address them as "custom" (all) or "custom:<id>". */
+function replaceInCustom(fields: NoteFields, spec: ReplaceSpec, re: RegExp): { fields: NoteFields; count: number; changed: string[] } {
+  const want = (id: string) => spec.fields === undefined || spec.fields === "all" || spec.fields.includes("custom") || spec.fields.includes(`custom:${id}`);
+  const custom: Record<string, string> = { ...(fields.custom ?? {}) };
+  let count = 0;
+  const changed: string[] = [];
+  for (const [id, v] of Object.entries(custom)) {
+    if (!want(id) || typeof v !== "string" || !v) continue;
+    const r = replaceString(v, re, spec);
+    if (r.n) { custom[id] = r.out; count += r.n; changed.push(`custom:${id}`); }
+  }
+  return { fields: { ...fields, custom }, count, changed };
+}
+
 export function replaceInNote(type: NoteType, fields: NoteFields, spec: ReplaceSpec, re = buildPattern(spec)): { fields: NoteFields; count: number; changed: string[] } {
+  if (type === "custom") return replaceInCustom(fields, spec, re);
   const allowed = noteTextFields(type).filter((f) => spec.fields === undefined || spec.fields === "all" || spec.fields.includes(f));
   const out: Record<string, unknown> = { ...fields };
   let count = 0;
@@ -71,7 +86,8 @@ export function previewReplace(notes: { id: number; type: NoteType; fields: Note
     p.notes++; p.matches += r.count;
     for (const f of r.changed) {
       if (p.samples.length >= sampleLimit) break;
-      const before = n.fields[f as keyof NoteFields], after = r.fields[f as keyof NoteFields];
+      const get = (x: NoteFields) => (f.startsWith("custom:") ? x.custom?.[f.slice(7)] : x[f as keyof NoteFields]);
+      const before = get(n.fields), after = get(r.fields);
       p.samples.push({ noteId: n.id, field: f, before: Array.isArray(before) ? before.join(" | ") : String(before ?? ""), after: Array.isArray(after) ? after.join(" | ") : String(after ?? "") });
     }
   }
@@ -79,8 +95,10 @@ export function previewReplace(notes: { id: number; type: NoteType; fields: Note
 }
 
 /* ─────────── duplicates ─────────── */
-export function firstFieldOf(type: NoteType, f: NoteFields): string {
+/** First field used for duplicate detection. Custom notes use their note type's sort field (`sortField`, stored on the note) when given. */
+export function firstFieldOf(type: NoteType, f: NoteFields, sortField?: string | null): string {
   switch (type) {
+    case "custom": return sortField ?? Object.values(f.custom ?? {})[0] ?? "";
     case "cloze": return f.text ?? "";
     case "mcq": return f.question ?? "";
     case "image_occlusion": return f.header ?? "";
@@ -90,12 +108,13 @@ export function firstFieldOf(type: NoteType, f: NoteFields): string {
 export const normalizeFirstField = (s: string) => stripMarkup(String(s ?? "").normalize("NFKC")).toLowerCase().replace(/\s+/g, " ").trim();
 
 export type DupScope = "deck" | "type" | "collection";
-export function findDuplicates<T extends { id: number; deckId: number; type: NoteType; fields: NoteFields }>(notes: T[], scope: DupScope): { key: string; ids: number[] }[] {
+export function findDuplicates<T extends { id: number; deckId: number; type: NoteType; fields: NoteFields; notetypeId?: number | null; sortField?: string }>(notes: T[], scope: DupScope): { key: string; ids: number[] }[] {
   const m = new Map<string, { key: string; ids: number[] }>();
   for (const n of [...notes].sort((a, b) => a.id - b.id)) {
-    const key = normalizeFirstField(firstFieldOf(n.type, n.fields));
+    const key = normalizeFirstField(firstFieldOf(n.type, n.fields, n.type === "custom" ? n.sortField : undefined));
     if (!key) continue;
-    const k = scope === "deck" ? `${n.deckId}\u0000${key}` : scope === "type" ? `${n.type}\u0000${key}` : key;
+    const typeKey = n.type === "custom" ? `custom:${n.notetypeId ?? ""}` : n.type;
+    const k = scope === "deck" ? `${n.deckId}\u0000${key}` : scope === "type" ? `${typeKey}\u0000${key}` : key;
     (m.get(k) ?? m.set(k, { key, ids: [] }).get(k)!).ids.push(n.id);
   }
   return [...m.values()].filter((g) => g.ids.length > 1).sort((a, b) => a.ids[0] - b.ids[0]);

@@ -3,6 +3,7 @@ import { q } from "../db";
 import { toNote } from "../repo/mappers";
 import { listDecks, requireDeck, BadRequestError } from "../repo/decks";
 import { searchNotes } from "./browse";
+import { getNoteTypesByIds } from "../repo/notetypes";
 import { descendantIds } from "@/core/tree";
 import { itemsFromNotes, type Direction, type StudyItem } from "@/core/modes";
 
@@ -31,7 +32,10 @@ export async function getModeItems(uid: number, src: ModeSource): Promise<{ key:
     rows = ids.length ? await q("SELECT * FROM ak_notes WHERE user_id = $1 AND id = ANY($2::int[]) AND deleted_at IS NULL ORDER BY position, id", [uid, ids]) : [];
     key = `q:${src.query.trim().slice(0, 200)}`; title = src.query.trim();
   } else throw new BadRequestError("source_required");
-  const items = itemsFromNotes(rows.map(toNote), { direction: src.direction });
+  const notes = rows.map(toNote);
+  const ntIds = [...new Set(notes.map((n) => n.notetypeId).filter((x): x is number => x != null))];
+  const nts = ntIds.length ? await getNoteTypesByIds(uid, ntIds) : new Map();
+  const items = itemsFromNotes(notes.map((n) => (n.notetypeId != null && nts.has(n.notetypeId) ? { ...n, fieldOrder: nts.get(n.notetypeId)!.fields.map((f: { id: string }) => f.id) } : n)), { direction: src.direction });
   return { key, title, items: items.slice(0, limit), total: items.length };
 }
 

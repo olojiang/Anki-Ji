@@ -14,8 +14,11 @@ import { deckPath, descendantIds } from "@/core/tree";
 import { cleanFields, renderCard, sortField, validateNote } from "@/core/notes";
 import { convertAnkiField, ANKI_MEDIA_PREFIX } from "@/core/io/apkg";
 import { mimeFromName } from "@/core/io/base64";
-import { allImporters, importerByName, importerByNoteType, noteToModelFields, type NoteTypeImporter } from "@/core/interop/models";
+import { allImporters, importerByNoteType, noteToModelFields, type NoteTypeImporter } from "@/core/interop/models";
 import { translateAnkiQuery } from "@/core/interop/query";
+import { customImporter, customModelFields, type CustomImporter } from "@/core/interop/custom";
+import { listNoteTypes } from "../repo/notetypes";
+import type { NoteTypeDef } from "@/core/notetypes";
 import { NOTE_TYPES, type NoteFields, type NoteType } from "@/core/types";
 
 export const ANKICONNECT_VERSION = 6;
@@ -79,19 +82,50 @@ async function resolveField(uid: number, html: string): Promise<string> {
   return conv.replace(new RegExp(`${ANKI_MEDIA_PREFIX}([^"')\\s]+)`, "g"), (_m, n) => map.get(n) ?? n);
 }
 
+/* ---------------- models (stock + the user's custom note types) ---------------- */
+
+interface Catalog {
+  list(): NoteTypeImporter[];
+  byName(name: string): NoteTypeImporter | undefined;
+  /** Importer for an existing note (custom notes by their note type id). */
+  forNote(type: string, notetypeId: number | null | undefined): NoteTypeImporter | undefined;
+  noteType(notetypeId: number | null | undefined): NoteTypeDef | null;
+}
+const isCustom = (imp: NoteTypeImporter): imp is CustomImporter => imp.noteType === "custom" && "notetypeId" in imp;
+
+/** Per-request model catalog: custom importers are built from this user's note types only (never a global registry). */
+async function catalog(uid: number): Promise<Catalog> {
+  const custom = (await listNoteTypes(uid)).map((nt) => customImporter(nt));
+  const stockNames = new Set(allImporters().map((m) => m.model.name.toLowerCase()));
+  const own = custom.filter((c) => !stockNames.has(c.model.name.toLowerCase())); // stock names win on a clash
+  const all = [...allImporters(), ...own];
+  return {
+    list: () => all,
+    byName: (name) => { const n = String(name ?? "").trim().toLowerCase(); return all.find((x) => x.model.name.toLowerCase() === n); },
+    forNote: (type, id) => (type === "custom" ? custom.find((c) => c.notetypeId === Number(id)) : importerByNoteType(type)),
+    noteType: (id) => custom.find((c) => c.notetypeId === Number(id))?.def ?? null,
+  };
+}
+
 /* ---------------- notes ---------------- */
 
-const modelToType = (name: string) => importerByName(name)?.noteType ?? (NOTE_TYPES.includes(name.toLowerCase() as NoteType) ? name.toLowerCase() : undefined);
+const modelToTypeFor = (cat: Catalog) => (name: string) => {
+  const imp = cat.byName(name);
+  if (imp) return isCustom(imp) ? imp.model.name.toLowerCase() : String(imp.noteType);
+  return NOTE_TYPES.includes(name.toLowerCase() as NoteType) ? name.toLowerCase() : undefined;
+};
 
 function matchFieldName(model: NoteTypeImporter["model"], given: string): string | undefined {
   return model.fields.find((f) => f.toLowerCase() === String(given).trim().toLowerCase());
 }
 
-interface Prepared { deckId: number; imp: NoteTypeImporter; type: NoteType; fields: NoteFields; tags: string[] }
+interface Prepared { deckId: number; imp: NoteTypeImporter; type: NoteType; fields: NoteFields; tags: string[]; notetypeId: number | null }
 
-async function prepareNote(uid: number, note: AcNote, opts: { store: boolean }): Promise<Prepared> {
+async function prepareNote(uid: number, note: AcNote, opts: { store: boolean }, cat?: Catalog): Promise<Prepared> {
   if (!note || typeof note !== "object") fail("note is required");
-  const imp = importerByName(String(note.modelName ?? "")) ?? fail(`model was not found: ${note.modelName}`);
+  cat ??= await catalog(uid);
+  const imp = cat.byName(String(note.modelName ?? "")) ?? fail(`model was not found: ${note.modelName}`);
+  const nt = isCustom(imp) ? imp.def : null;
   const decks = (await listDecks(uid)).filter((d) => !d.filtered);
   const want = String(note.deckName ?? "").trim().toLowerCase();
   const deck = decks.find((d) => deckPath(decks, d.id).toLowerCase() === want) ?? fail(`deck was not found: ${note.deckName}`);
@@ -118,14 +152,14 @@ async function prepareNote(uid: number, note: AcNote, opts: { store: boolean }):
     if (r[0]) resolved[a.field] += `\n\n![video](${String(r[0].url)})`;
   }
   const type = imp.noteType as NoteType;
-  const fields = cleanFields(type, imp.fromAnki(resolved));
+  const fields = cleanFields(type, imp.fromAnki(resolved), nt);
   const first = values[imp.model.fields[0]] ?? "";
   if (!first.replace(/<[^>]*>|&nbsp;/g, "").trim() && !/<img/i.test(first)) fail("cannot create note because it is empty");
-  const err = validateNote(type, fields);
+  const err = validateNote(type, fields, nt);
   if (err === "cloze_required") fail("cannot create note: cloze deletion missing (use {{c1::...}})");
   if (err) fail(`cannot create note because it is empty (${err})`);
   if (!note.options?.allowDuplicate) {
-    const sf = sortField(type, fields);
+    const sf = sortField(type, fields, nt);
     const scope = note.options?.duplicateScope === "deck";
     let deckIds: number[] | null = null;
     if (scope) {
@@ -135,17 +169,19 @@ async function prepareNote(uid: number, note: AcNote, opts: { store: boolean }):
     }
     const allModels = !!note.options?.duplicateScopeOptions?.checkAllModels;
     const dup = await q(
-      `SELECT 1 FROM ak_notes WHERE user_id = $1 AND deleted_at IS NULL AND sort_field = $2 ${allModels ? "" : "AND type = $3"} ${deckIds ? `AND deck_id = ANY($${allModels ? 3 : 4}::int[])` : ""} LIMIT 1`,
+      `SELECT 1 FROM ak_notes WHERE user_id = $1 AND deleted_at IS NULL AND sort_field = $2 ${allModels ? "" : "AND type = $3"} ${deckIds ? `AND deck_id = ANY($${allModels ? 3 : 4}::int[])` : ""}
+       ${!allModels && nt ? `AND notetype_id = ${Number(nt.id)}` : ""} LIMIT 1`,
       [uid, sf, ...(allModels ? [] : [type]), ...(deckIds ? [deckIds] : [])]);
     if (dup.length) fail("cannot create note because it is a duplicate");
   }
-  return { deckId: deck.id, imp, type, fields, tags: tagList(note.tags) };
+  return { deckId: deck.id, imp, type, fields, tags: tagList(note.tags), notetypeId: nt ? Number(nt.id) : null };
 }
 
-async function addNote(uid: number, note: AcNote): Promise<number> {
-  await prepareNote(uid, note, { store: false }); // validate before storing any media
-  const p = await prepareNote(uid, note, { store: true });
-  return (await createNote(uid, { deckId: p.deckId, type: p.type, fields: p.fields, tags: p.tags })).id;
+async function addNote(uid: number, note: AcNote, cat?: Catalog): Promise<number> {
+  cat ??= await catalog(uid);
+  await prepareNote(uid, note, { store: false }, cat); // validate before storing any media
+  const p = await prepareNote(uid, note, { store: true }, cat);
+  return (await createNote(uid, { deckId: p.deckId, type: p.type, fields: p.fields, tags: p.tags, ...(p.notetypeId != null ? { notetypeId: p.notetypeId } : {}) })).id;
 }
 
 async function ownedNotes(uid: number, ids: number[]) {
@@ -154,7 +190,7 @@ async function ownedNotes(uid: number, ids: number[]) {
 }
 
 async function findCardRows(uid: number, query: string) {
-  const t = translateAnkiQuery(query, modelToType);
+  const t = translateAnkiQuery(query, modelToTypeFor(await catalog(uid)));
   let rows = await searchNotes(uid, t.query, { sort: "created" });
   if (t.nids) { const s = new Set(t.nids); rows = rows.filter((r) => s.has(r.noteId)); }
   if (t.cids) { const s = new Set(t.cids); rows = rows.filter((r) => s.has(r.cardId)); }
@@ -163,20 +199,21 @@ async function findCardRows(uid: number, query: string) {
 
 const secs = (v: unknown) => Math.floor(new Date(String(v instanceof Date ? v.toISOString() : v)).getTime() / 1000);
 
-function fieldsObject(type: string, f: NoteFields) {
-  const { model, values } = noteToModelFields(type, f);
+function fieldsObject(type: string, f: NoteFields, nt?: NoteTypeDef | null) {
+  const { model, values } = type === "custom" && nt ? customModelFields(nt, f) : noteToModelFields(type, f);
   return { model, fields: Object.fromEntries(model.fields.map((name, order) => [name, { value: values[order] ?? "", order }])) };
 }
 
 async function notesInfo(uid: number, params: Params) {
   const ids = params.query != null ? [...new Set((await findCardRows(uid, String(params.query))).map((r) => r.noteId))] : idList(params.notes);
   const rows = await ownedNotes(uid, ids);
+  const cat = await catalog(uid);
   const byId = new Map(rows.map((r) => [Number(r.id), r]));
   const cards = rows.length ? await q("SELECT id, note_id FROM ak_cards WHERE user_id = $1 AND note_id = ANY($2::int[]) ORDER BY ord", [uid, rows.map((r) => Number(r.id))]) : [];
   return ids.map((id) => {
     const r = byId.get(id);
     if (!r) return {};
-    const { model, fields } = fieldsObject(String(r.type), r.fields as NoteFields);
+    const { model, fields } = fieldsObject(String(r.type), r.fields as NoteFields, cat.noteType(r.notetype_id as number | null));
     return { noteId: id, profile: "Anki-ji", modelName: model.name, tags: r.tags ?? [], fields, mod: secs(r.updated_at), cards: cards.filter((c) => Number(c.note_id) === id).map((c) => Number(c.id)) };
   });
 }
@@ -184,25 +221,27 @@ async function notesInfo(uid: number, params: Params) {
 async function cardsInfo(uid: number, ids: number[]) {
   if (!ids.length) return [];
   const rows = await q(
-    `SELECT c.*, n.type AS note_type, n.fields AS note_fields, n.updated_at AS note_mod FROM ak_cards c JOIN ak_notes n ON n.id = c.note_id
+    `SELECT c.*, n.type AS note_type, n.notetype_id AS note_notetype_id, n.fields AS note_fields, n.updated_at AS note_mod FROM ak_cards c JOIN ak_notes n ON n.id = c.note_id
      WHERE c.user_id = $1 AND c.id = ANY($2::int[]) AND n.deleted_at IS NULL`, [uid, ids]);
   const decks = await listDecks(uid);
+  const cat = await catalog(uid);
   const byId = new Map(rows.map((r) => [Number(r.id), r]));
   return ids.map((id) => {
     const c = byId.get(id);
     if (!c) return {};
     const type = String(c.note_type);
     const f = c.note_fields as NoteFields;
-    const { model, fields } = fieldsObject(type, f);
+    const nt = type === "custom" ? cat.noteType(c.note_notetype_id as number | null) : null;
+    const { model, fields } = fieldsObject(type, f, nt);
     const ord = Number(c.ord);
-    const rc = renderCard(type as NoteType, f, ord);
+    const rc = renderCard(type as NoteType, f, ord, nt);
     const state = String(c.state);
     const ctype = state === "new" ? 0 : state === "learning" ? 1 : state === "review" ? 2 : 3;
     const queue = c.suspended ? -1 : ctype === 3 ? 1 : ctype;
     const dueMs = new Date(String(c.due instanceof Date ? c.due.toISOString() : c.due)).getTime();
     return {
       cardId: id, note: Number(c.note_id), deckName: deckPath(decks, Number(c.home_deck_id ?? c.deck_id)), modelName: model.name, fieldOrder: 0, fields,
-      question: rc.front, answer: rc.back, css: model.css, ord: type === "cloze" ? ord - 1 : ord, type: ctype, queue,
+      question: rc.front, answer: rc.back, css: model.css, ord: type === "cloze" || nt?.kind === "cloze" ? ord - 1 : nt ? Math.max(0, nt.templates.findIndex((x) => x.ord === ord)) : ord, type: ctype, queue,
       due: ctype === 0 ? Math.round(Number(c.position)) : ctype === 2 ? Math.floor(dueMs / 86_400_000) : Math.floor(dueMs / 1000),
       interval: Math.round(Number(c.scheduled_days)), factor: Math.round(Number(c.ease) * 1000), reps: Number(c.reps), lapses: Number(c.lapses), left: 0,
       mod: secs(c.note_mod), flags: Number(c.flag),
@@ -215,8 +254,9 @@ async function updateNoteFields(uid: number, note: { id?: unknown; fields?: Reco
   const cur = Number.isSafeInteger(id) ? await getNote(uid, id) : null;
   if (!cur || cur.deletedAt) return fail(`note was not found: ${note?.id}`);
   if (note.fields && Object.keys(note.fields).length) {
-    const imp = importerByNoteType(cur.type) ?? fail(`note type ${cur.type} cannot be edited through AnkiConnect`);
-    const { values } = noteToModelFields(cur.type, cur.fields);
+    const cat = await catalog(uid);
+    const imp = cat.forNote(cur.type, cur.notetypeId) ?? fail(`note type ${cur.type} cannot be edited through AnkiConnect`);
+    const { values } = isCustom(imp) ? customModelFields(imp.def, cur.fields) : noteToModelFields(cur.type, cur.fields);
     const merged: Record<string, string> = Object.fromEntries(imp.model.fields.map((n, i) => [n, values[i] ?? ""]));
     for (const [k, v] of Object.entries(note.fields)) { const name = matchFieldName(imp.model, k); if (name) merged[name] = await resolveField(uid, String(v ?? "")); }
     for (const [kind, list] of [["audio", note.audio], ["picture", note.picture]] as const) {
@@ -250,29 +290,31 @@ async function dispatch(uid: number, action: string, params: Params): Promise<un
       if (!name) fail("deck name is required");
       return ensureDeckPath(uid, name);
     }
-    case "modelNames": return allImporters().map((m) => m.model.name);
-    case "modelNamesAndIds": return Object.fromEntries(allImporters().map((m) => [m.model.name, m.model.id]));
-    case "modelFieldNames": return (importerByName(String(params.modelName ?? "")) ?? fail(`model was not found: ${params.modelName}`)).model.fields;
+    case "modelNames": return (await catalog(uid)).list().map((m) => m.model.name);
+    case "modelNamesAndIds": return Object.fromEntries((await catalog(uid)).list().map((m) => [m.model.name, m.model.id]));
+    case "modelFieldNames": return ((await catalog(uid)).byName(String(params.modelName ?? "")) ?? fail(`model was not found: ${params.modelName}`)).model.fields;
     case "modelFieldsOnTemplates": {
-      const m = (importerByName(String(params.modelName ?? "")) ?? fail(`model was not found: ${params.modelName}`)).model;
+      const m = ((await catalog(uid)).byName(String(params.modelName ?? "")) ?? fail(`model was not found: ${params.modelName}`)).model;
       return Object.fromEntries(m.templates.map((t) => [t.name, [t.qfmt, t.afmt].map((s) => m.fields.filter((f) => s.includes(`{{${f}}}`) || s.includes(`:${f}}}`)))]));
     }
     case "modelTemplates": {
-      const m = (importerByName(String(params.modelName ?? "")) ?? fail(`model was not found: ${params.modelName}`)).model;
+      const m = ((await catalog(uid)).byName(String(params.modelName ?? "")) ?? fail(`model was not found: ${params.modelName}`)).model;
       return Object.fromEntries(m.templates.map((t) => [t.name, { Front: t.qfmt, Back: t.afmt }]));
     }
-    case "modelStyling": return { css: (importerByName(String(params.modelName ?? "")) ?? fail(`model was not found: ${params.modelName}`)).model.css };
+    case "modelStyling": return { css: ((await catalog(uid)).byName(String(params.modelName ?? "")) ?? fail(`model was not found: ${params.modelName}`)).model.css };
     case "addNote": return addNote(uid, params.note as AcNote);
     case "addNotes": {
       const list = arr(params.notes as AcNote[]).slice(0, MAX_BATCH);
+      const cat = await catalog(uid);
       const out: (number | null)[] = [];
-      for (const n of list) { try { out.push(await addNote(uid, n)); } catch { out.push(null); } }
+      for (const n of list) { try { out.push(await addNote(uid, n, cat)); } catch { out.push(null); } }
       return out;
     }
     case "canAddNotes": case "canAddNotesWithErrorDetail": {
       const out: { canAdd: boolean; error?: string }[] = [];
+      const cat = await catalog(uid);
       for (const n of arr(params.notes as AcNote[]).slice(0, MAX_BATCH)) {
-        try { await prepareNote(uid, n, { store: false }); out.push({ canAdd: true }); } catch (e) { out.push({ canAdd: false, error: (e as Error).message }); }
+        try { await prepareNote(uid, n, { store: false }, cat); out.push({ canAdd: true }); } catch (e) { out.push({ canAdd: false, error: (e as Error).message }); }
       }
       return action === "canAddNotes" ? out.map((o) => o.canAdd) : out;
     }

@@ -12,6 +12,7 @@ import { dayIndex } from "@/core/time";
 import { extractMediaUrls, type OfflinePack, type PackCard, type PackNote } from "@/core/offline";
 import { mergeCardReviews, schedFromJSON, schedToJSON, sortReviews, type HistoryEntry, type IncomingReview } from "@/core/sync";
 import type { NoteFields, NoteType, Rating } from "@/core/types";
+import { getNoteTypesByIds } from "../repo/notetypes";
 
 const MAX_BATCH = 500;
 const ID_RE = /^[A-Za-z0-9_-]{8,64}$/;
@@ -43,14 +44,16 @@ export async function buildOfflinePack(uid: number, deckId: number): Promise<Off
   for (const c of packCards) if (c.homeDeckId) deckIds.add(c.homeDeckId);
   const noteIds = [...new Set(packCards.map((c) => c.noteId))];
   const noteRows = noteIds.length
-    ? await q("SELECT id, type, fields, tags FROM ak_notes WHERE user_id = $1 AND id = ANY($2::int[]) AND deleted_at IS NULL", [uid, noteIds]) : [];
-  const notes: PackNote[] = noteRows.map((r) => ({ id: Number(r.id), type: r.type as NoteType, fields: (r.fields ?? {}) as NoteFields, tags: (r.tags as string[]) ?? [] }));
+    ? await q("SELECT id, type, notetype_id, fields, tags FROM ak_notes WHERE user_id = $1 AND id = ANY($2::int[]) AND deleted_at IS NULL", [uid, noteIds]) : [];
+  const notes: PackNote[] = noteRows.map((r) => ({ id: Number(r.id), type: r.type as NoteType, fields: (r.fields ?? {}) as NoteFields, tags: (r.tags as string[]) ?? [], ...(r.notetype_id != null ? { notetypeId: Number(r.notetype_id) } : {}) }));
+  const ntIds = [...new Set(notes.map((n) => n.notetypeId).filter((x): x is number => x != null))];
+  const noteTypes = ntIds.length ? [...(await getNoteTypesByIds(uid, ntIds)).values()] : [];
   const media = [...new Set(notes.flatMap((n) => extractMediaUrls(n.fields)))];
   const load = await reviewLoadByDay(uid, ctx.offset, ctx.rollover);
   return {
     v: 1, uid, deckId, deckName: deck.name, filtered: deck.filtered, generatedAt: ctx.now.toISOString(), tz: ctx.tz, rollover: ctx.rollover, day: ctx.today,
     decks: all.filter((d) => deckIds.has(d.id)).map(toQD), cards: packCards.map(packCard), notes,
-    studied: [...studied.entries()], notesReviewedToday: [...reviewedNotes], load: [...load.entries()], media,
+    studied: [...studied.entries()], notesReviewedToday: [...reviewedNotes], load: [...load.entries()], media, ...(noteTypes.length ? { noteTypes } : {}),
   };
 }
 

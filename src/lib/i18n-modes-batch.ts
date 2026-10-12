@@ -39,7 +39,7 @@ export const MB_DICT = {
   replaceAll: ["全部替换", "Replace all"], replacedN: ["已替换 {m} 处（{n} 条题目）", "Replaced {m} matches in {n} notes"], skippedN: ["{n} 条因替换后无效而跳过", "{n} skipped (would become invalid)"],
   undoLast: ["撤销", "Undo"], undone: ["已撤销", "Undone"], regexHelp: ["正则模式下可用 $1、$2 引用分组", "In regex mode use $1, $2 for groups"],
   f_front: ["正面", "Front"], f_back: ["背面", "Back"], f_text: ["填空文本", "Cloze text"], f_extra: ["额外", "Extra"], f_question: ["题干", "Question"], f_options: ["选项", "Options"],
-  f_explanation: ["解析", "Explanation"], f_header: ["标题", "Header"], f_empty: ["（留空）", "(empty)"],
+  f_explanation: ["解析", "Explanation"], f_header: ["标题", "Header"], f_custom: ["自定义类型字段", "Custom type fields"], f_empty: ["（留空）", "(empty)"],
   dupScope: ["比较范围", "Compare within"], dupDeck: ["同一牌组", "Same deck"], dupType: ["同一题型", "Same note type"], dupCollection: ["整个题库", "Whole collection"],
   dupIn: ["查找位置", "Look in"], dupAllDecks: ["所有牌组", "All decks"], dupResults: ["当前搜索结果", "Current search results"], scan: ["查找", "Scan"],
   dupGroups: ["{n} 组重复", "{n} duplicate groups"], dupNone: ["没有发现重复（按第一个字段比较，忽略大小写、空格和 HTML）", "No duplicates (first field, ignoring case, spacing and HTML)"],

@@ -16,7 +16,7 @@ export interface StudyItem {
   promptText: string; // plain text
   answerText: string; // plain text
 }
-export interface SourceNote { id: number; type: NoteType; fields: NoteFields }
+export interface SourceNote { id: number; type: NoteType; fields: NoteFields; /** custom notes: field ids in note type order */ fieldOrder?: string[] }
 export type Direction = "forward" | "reverse" | "both";
 
 export function itemsFromNotes(notes: SourceNote[], opts: { direction?: Direction } = {}): StudyItem[] {
@@ -46,6 +46,13 @@ export function itemsFromNotes(notes: SourceNote[], opts: { direction?: Directio
         break;
       }
       case "image_occlusion": break;
+      case "custom": { // custom note types: first two non-empty fields (in note type order)
+        const c = f.custom ?? {};
+        const ids = n.fieldOrder?.length ? n.fieldOrder.filter((k) => k in c) : Object.keys(c);
+        const vals = ids.map((k) => c[k]).filter((v) => typeof v === "string" && stripMarkup(v));
+        if (vals.length >= 2) push(n.id, "0", dir === "reverse" ? vals[1] : vals[0], dir === "reverse" ? vals[0] : vals[1]);
+        break;
+      }
       default: {
         const front = f.front ?? "", back = f.back ?? "";
         if (dir !== "reverse") push(n.id, "0", front, back);

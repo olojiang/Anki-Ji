@@ -8,6 +8,7 @@ import type { NoteFields, NoteType, Rating, SchedState } from "./types";
 import { buildQueue, type QueueCard, type QueueDeck } from "./queue";
 import { answerCard, previewIntervals, formatInterval } from "./answer";
 import { renderCard, type RenderedCard } from "./notes";
+import type { NoteTypeDef } from "./notetypes";
 import { createScheduler } from "./scheduler";
 import { dayIndex } from "./time";
 import { schedFromJSON, schedToJSON, schedVersion, type SchedJSON } from "./sync";
@@ -16,13 +17,15 @@ export interface PackCard extends SchedJSON {
   id: number; noteId: number; deckId: number; homeDeckId: number | null; ord: number;
   suspended: boolean; buriedDay: number | null; flag: number; leech: boolean; position: number; createdAt: string;
 }
-export interface PackNote { id: number; type: NoteType; fields: NoteFields; tags: string[] }
+export interface PackNote { id: number; type: NoteType; fields: NoteFields; tags: string[]; notetypeId?: number | null }
 export interface OfflinePack {
   v: 1; uid: number; deckId: number; deckName: string; filtered: boolean; generatedAt: string;
   tz: string; rollover: number; day: number; // study day the counters below belong to
   decks: QueueDeck[]; cards: PackCard[]; notes: PackNote[];
   studied: [number, { new: number; review: number }][]; notesReviewedToday: number[]; load: [number, number][];
   media: string[];
+  /** Custom note types used by the pack's notes (feat/notetypes), so they render offline with their templates. */
+  noteTypes?: (NoteTypeDef & { id: number })[];
 }
 
 /** One answered-offline review, as stored in the outbox and POSTed to /api/sync/reviews. */
@@ -73,7 +76,7 @@ export function localStudyView(p: OfflinePack, now: Date): StudyView {
       const cfg = cfgFor(p, pc);
       const iv = previewIntervals(first, { cfg, now, tz: p.tz, rollover: p.rollover, loadOn: () => 0 });
       card = {
-        cardId: pc.id, noteId: pc.noteId, deckId: pc.deckId, type: note.type, ord: pc.ord, state: first.state, ...renderCard(note.type, note.fields, pc.ord),
+        cardId: pc.id, noteId: pc.noteId, deckId: pc.deckId, type: note.type, ord: pc.ord, state: first.state, ...renderCard(note.type, note.fields, pc.ord, note.type === "custom" ? p.noteTypes?.find((t) => t.id === note.notetypeId) ?? null : null, { tags: note.tags, deck: p.deckName }),
         intervals: Object.fromEntries(Object.entries(iv).map(([k, v]) => [k, formatInterval(v)])),
         flag: pc.flag, leech: pc.leech, tags: note.tags,
         retrievability: createScheduler(cfg).retrievability(first, now), stability: first.stability, difficulty: first.difficulty, reps: first.reps, lapses: first.lapses,
