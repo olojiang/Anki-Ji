@@ -8,7 +8,7 @@ const dateOrNull = (v: unknown) => (v == null ? null : date(v));
 
 export interface Deck { id: number; parentId: number | null; name: string; position: number; config: DeckConfig; filtered: boolean; filter: FilterSpec | null; deletedAt: Date | null; createdAt: Date }
 export interface FilterSpec { query: string; limit: number; order: "due" | "random" | "added" | "retrievability" }
-export interface Note { id: number; deckId: number; guid: string; type: NoteType; fields: NoteFields; tags: string[]; position: number; sortField: string; deletedAt: Date | null; createdAt: Date; updatedAt: Date }
+export interface Note { id: number; deckId: number; guid: string; type: NoteType; notetypeId: number | null; fields: NoteFields; tags: string[]; position: number; sortField: string; deletedAt: Date | null; createdAt: Date; updatedAt: Date }
 export interface Card extends SchedState { id: number; noteId: number; deckId: number; homeDeckId: number | null; ord: number; suspended: boolean; buriedDay: number | null; flag: number; leech: boolean; position: number; createdAt: Date }
 
 export function toDeck(r: Row): Deck {
@@ -21,7 +21,7 @@ export function toDeck(r: Row): Deck {
 
 export function toNote(r: Row): Note {
   return {
-    id: num(r.id), deckId: num(r.deck_id), guid: String(r.guid), type: r.type as NoteType, fields: (r.fields ?? {}) as NoteFields,
+    id: num(r.id), deckId: num(r.deck_id), guid: String(r.guid), type: r.type as NoteType, notetypeId: r.notetype_id == null ? null : num(r.notetype_id), fields: (r.fields ?? {}) as NoteFields,
     tags: (r.tags as string[]) ?? [], position: num(r.position), sortField: String(r.sort_field ?? ""), deletedAt: dateOrNull(r.deleted_at),
     createdAt: date(r.created_at), updatedAt: date(r.updated_at),
   };

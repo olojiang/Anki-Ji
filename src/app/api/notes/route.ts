@@ -10,7 +10,7 @@ export const GET = authed(async (req, { uid }) => {
 });
 
 export const POST = authed(async (req, { uid }) => {
-  const b = await body<{ deckId: number; type: NoteType; fields: NoteFields; tags?: string[] }>(req);
-  const note = await createNote(uid, { deckId: Number(b.deckId), type: b.type, fields: b.fields, tags: b.tags ?? [] });
+  const b = await body<{ deckId: number; type: NoteType; fields: NoteFields; tags?: string[]; notetypeId?: number | null }>(req);
+  const note = await createNote(uid, { deckId: Number(b.deckId), type: b.type, fields: b.fields, tags: b.tags ?? [], notetypeId: b.notetypeId ?? null });
   return { note };
 });

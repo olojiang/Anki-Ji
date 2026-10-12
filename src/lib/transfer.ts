@@ -81,6 +81,8 @@ export async function importBackup(b: Backup, progress: Progress) {
   const backup = rewriteBackupMedia(b, urlMap);
   progress({ key: "importing" });
   const { deckMap } = await api<{ deckMap: Record<string, number> }>("/api/import/decks", { body: { decks: backup.decks } });
+  // custom note types first, so their notes can point at the user's own copies
+  const noteTypeMap = backup.noteTypes?.length ? (await api<{ noteTypeMap: Record<string, number> }>("/api/import/notetypes", { body: { noteTypes: backup.noteTypes } })).noteTypeMap : {};
   const cardsByNote = new Map<number, typeof backup.cards>();
   for (const c of backup.cards) (cardsByNote.get(c.noteId) ?? cardsByNote.set(c.noteId, []).get(c.noteId)!).push(c);
   const revByCard = new Map<number, typeof backup.revlog>();
@@ -91,7 +93,7 @@ export async function importBackup(b: Backup, progress: Progress) {
     progress({ key: "importing", vars: { i: i + 1, n: parts.length } });
     const cards = notes.flatMap((n) => cardsByNote.get(n.id) ?? []);
     const revlog = cards.flatMap((c) => revByCard.get(c.id) ?? []);
-    const r = await api<typeof total>("/api/import/notes", { body: { notes, cards, revlog, deckMap } });
+    const r = await api<typeof total>("/api/import/notes", { body: { notes, cards, revlog, deckMap, noteTypeMap } });
     total.notes += r.notes; total.cards += r.cards; total.revlog += r.revlog; total.skipped += r.skipped;
   }
   return total;

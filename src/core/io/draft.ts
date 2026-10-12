@@ -44,7 +44,8 @@ export function noteGuid(n: DraftNote): string {
 }
 
 function fieldStrings(f: NoteFields): string[] {
-  return Object.values(f).flatMap((v) => (typeof v === "string" ? [v] : Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []));
+  return Object.values(f).flatMap((v) => (typeof v === "string" ? [v] : Array.isArray(v) ? v.filter((x): x is string => typeof x === "string")
+    : v && typeof v === "object" ? Object.values(v).filter((x): x is string => typeof x === "string") : []));
 }
 
 export function draftToBackup(d: ImportDraft, now = new Date().toISOString()): { backup: Backup; duplicates: number } {
@@ -105,6 +106,7 @@ export function sampleSides(type: NoteType, f: NoteFields): { front: string; bac
     case "cloze": return { front: plainDeep(f.text ?? ""), back: plain(f.extra ?? "") };
     case "mcq": return { front: plain(f.question ?? ""), back: (f.options ?? []).map(plain).join(" | ") };
     case "image_occlusion": return { front: plain(f.header ?? ""), back: plain(f.extra ?? "") };
+    case "custom": { const v = Object.values(f.custom ?? {}); return { front: plainDeep(v[0] ?? ""), back: plain(v.slice(1).join(" · ")) }; }
     default: return { front: plain(f.front ?? ""), back: plain(f.back ?? "") };
   }
 }

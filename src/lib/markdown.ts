@@ -83,3 +83,21 @@ export function renderMarkdown(md: string): string {
     FORBID_TAGS: ["style", "script", "form", "input"],
   });
 }
+
+/** One note field written in Markdown → HTML (unsanitised; the whole card is sanitised afterwards). Inline when it is a single paragraph. */
+export function markdownField(md: string): string {
+  const s = md ?? "";
+  if (!s.trim()) return s;
+  const block = /\n\s*\n|^\s*(#{1,6}\s|[-*+]\s|\d+\.\s|>|```|\$\$|\|)/m.test(s);
+  return (block ? marked.parse(s, { async: false }) : marked.parseInline(s, { async: false })) as string;
+}
+
+/** Sanitise card-template HTML (custom note types): media/ruby/details allowed, scripts/styles/forms removed. */
+export function sanitizeCardHtml(html: string): string {
+  if (typeof window === "undefined") return "";
+  return purifier().sanitize(html ?? "", {
+    ADD_TAGS: ["iframe", "audio", "video", "source", "ruby", "rb", "rt", "rp", "details", "summary"],
+    ADD_ATTR: ["controls", "allowfullscreen", "frameborder", "target", "preload", "loading", "open"],
+    FORBID_TAGS: ["style", "script", "form", "input", "textarea", "select", "button", "link", "meta", "base"],
+  });
+}

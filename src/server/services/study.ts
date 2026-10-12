@@ -6,7 +6,7 @@ import { q } from "../db";
 import { userContext } from "./context";
 import { schedSnapshot, type Card, type Deck } from "../repo/mappers";
 import { buildQueue, type QueueDeck } from "@/core/queue";
-import { descendantIds } from "@/core/tree";
+import { descendantIds, deckPath } from "@/core/tree";
 import { answerCard, previewIntervals, formatInterval } from "@/core/answer";
 import { renderCard } from "@/core/notes";
 import { createScheduler } from "@/core/scheduler";
@@ -50,7 +50,7 @@ export async function getStudyState(uid: number, deckId: number) {
     const cfg = (decks.find((d) => d.id === (first.homeDeckId ?? first.deckId)) ?? deck).config;
     const actx = { cfg, now: ctx.now, tz: ctx.tz, rollover: ctx.rollover, loadOn: () => 0 };
     const iv = previewIntervals(first, actx);
-    const r = renderCard(note!.type, note!.fields, first.ord);
+    const r = renderCard(note!.type, note!.fields, first.ord, note!.noteType, { tags: note!.tags, deck: deckPath(decks, first.homeDeckId ?? first.deckId) });
     card = {
       cardId: first.id, noteId: first.noteId, deckId: first.deckId, type: note!.type, ord: first.ord, state: first.state, ...r,
       intervals: Object.fromEntries(Object.entries(iv).map(([k, v]) => [k, formatInterval(v)])) as Record<string, string>,

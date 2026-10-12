@@ -31,10 +31,10 @@ export function BrowsePreview({ row, onClose }: { row: BrowseRowDTO | null; onCl
       </Card>
     );
   }
-  const rendered = note ? (() => { try { return renderCard(note.type, note.fields, row.ord); } catch { return null; } })() : null;
+  const rendered = note ? (() => { try { return renderCard(note.type, note.fields, row.ord, note.noteType, { tags: note.tags, deck: row.deckPath }); } catch { return null; } })() : null;
   const facts: [string, string][] = [
     [t("colDeck"), row.deckPath],
-    [t("colType"), t(`t_${row.type}`)],
+    [t("colType"), row.noteTypeName ?? t(`t_${row.type}`)],
     [t("colIvl"), row.state === "review" ? `${Math.round(row.interval)}d` : "—"],
     [t("stability"), row.stability ? `${row.stability.toFixed(1)}d` : "—"],
     [t("difficulty"), row.difficulty ? row.difficulty.toFixed(1) : "—"],

@@ -66,7 +66,7 @@ export default function BrowsePage() {
   const groups = useMemo(() => {
     const m = new Map<string, BrowseRowDTO[]>();
     for (const r of list) {
-      const ks = group === "none" ? [""] : group === "deck" ? [r.deckPath] : group === "type" ? [t(`t_${r.type}`)] : r.tags.length ? r.tags : ["—"];
+      const ks = group === "none" ? [""] : group === "deck" ? [r.deckPath] : group === "type" ? [(r.noteTypeName ?? t(`t_${r.type}`))] : r.tags.length ? r.tags : ["—"];
       for (const k of ks) (m.get(k) ?? m.set(k, []).get(k)!).push(r);
     }
     return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0]));
@@ -147,7 +147,7 @@ export default function BrowsePage() {
                         <button className="min-w-0 flex-1 py-1.5 text-left" onClick={() => router.push(`/notes/${r.noteId}`)}>
                           <div className="line-clamp-2 break-words text-[15px] font-medium leading-snug text-fg">{r.sortField || "—"}{mode === "cards" && <span className="ml-1.5 text-xs font-normal text-faint">#{r.type === "cloze" ? `c${r.ord}` : r.ord + 1}</span>}</div>
                           <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-faint">
-                            <span className="max-w-[60%] truncate">{r.deckPath}</span><span>·</span><span>{t(`t_${r.type}`)}</span>
+                            <span className="max-w-[60%] truncate">{r.deckPath}</span><span>·</span><span>{(r.noteTypeName ?? t(`t_${r.type}`))}</span>
                             {r.state !== "new" && <><span>·</span><span className="num">{dueText(r)}</span></>}
                             {r.state === "review" && <><span>·</span><span className="num">{Math.round(r.interval)}d</span></>}
                           </div>
@@ -224,7 +224,7 @@ export default function BrowsePage() {
                             {mode === "cards" && <div className="text-xs text-faint">#{r.type === "cloze" ? `c${r.ord}` : r.ord + 1}</div>}
                           </td>
                           <td className="truncate px-2 py-2 text-sub" title={r.deckPath}>{r.deckPath}</td>
-                          <td className="hidden truncate px-2 py-2 text-sub xl:table-cell">{t(`t_${r.type}`)}</td>
+                          <td className="hidden truncate px-2 py-2 text-sub xl:table-cell">{(r.noteTypeName ?? t(`t_${r.type}`))}</td>
                           <td className="num whitespace-nowrap px-2 py-2 text-[12px] text-sub">{dueText(r)}</td>
                           <td className="num whitespace-nowrap px-2 py-2 text-right text-[12px] text-sub">{r.state === "review" ? `${Math.round(r.interval)}d` : "—"}</td>
                           <td className="hidden py-2 pl-5 pr-2 xl:table-cell"><div className="flex gap-1 overflow-hidden">{r.tags.slice(0, 3).map((x) => <Badge key={x} className="max-w-[110px] truncate">{x}</Badge>)}</div></td>

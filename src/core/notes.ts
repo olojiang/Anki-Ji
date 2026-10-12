@@ -1,8 +1,9 @@
 import type { NoteFields, NoteType, OcclusionMask } from "./types";
 import { clozeOrdinals, renderCloze, stripCloze } from "./cloze";
+import { customSearchText, customSortField, generateOrdinals, renderNoteTypeCard, sanitizeValues, validateCustomNote, type CardContext, type CustomRenderPayload, type NoteTypeDef } from "./notetypes";
 
 export interface RenderedCard {
-  kind: "plain" | "type" | "mcq" | "occlusion";
+  kind: "plain" | "type" | "mcq" | "occlusion" | "html"; // "html": custom note type (template output, unsanitised)
   front: string; // markdown
   back: string; // markdown (answer part)
   showFrontOnBack: boolean;
@@ -10,10 +11,13 @@ export interface RenderedCard {
   options?: string[];
   correct?: number[];
   occlusion?: { image: string; masks: OcclusionMask[]; active: number; mode: "hideOne" | "hideAll" };
+  css?: string;
+  custom?: CustomRenderPayload;
 }
 
 /** Which card ordinals a note produces. Cloze ordinals are 1-based like Anki; all others 0-based. */
-export function cardOrdinals(type: NoteType, f: NoteFields): number[] {
+export function cardOrdinals(type: NoteType, f: NoteFields, nt?: NoteTypeDef | null): number[] {
+  if (type === "custom") return nt ? generateOrdinals(nt, sanitizeValues(nt, f.custom ?? {})) : [];
   switch (type) {
     case "basic_reverse": return [0, 1];
     case "basic_optional_reverse": return f.addReverse ? [0, 1] : [0];
@@ -23,7 +27,11 @@ export function cardOrdinals(type: NoteType, f: NoteFields): number[] {
   }
 }
 
-export function renderCard(type: NoteType, f: NoteFields, ord: number): RenderedCard {
+export function renderCard(type: NoteType, f: NoteFields, ord: number, nt?: NoteTypeDef | null, ctx?: CardContext): RenderedCard {
+  if (type === "custom") {
+    if (nt) return renderNoteTypeCard(nt, sanitizeValues(nt, f.custom ?? {}), ord, ctx);
+    return { kind: "plain", front: Object.values(f.custom ?? {})[0] ?? "", back: Object.values(f.custom ?? {}).slice(1).join("\n\n"), showFrontOnBack: true };
+  }
   const extra = (s?: string) => (s && s.trim() ? `\n\n${s}` : "");
   switch (type) {
     case "basic_reverse":
@@ -63,7 +71,8 @@ export function stripMarkup(s: string): string {
     .trim();
 }
 
-export function sortField(type: NoteType, f: NoteFields): string {
+export function sortField(type: NoteType, f: NoteFields, nt?: NoteTypeDef | null): string {
+  if (type === "custom") return nt ? customSortField(nt, sanitizeValues(nt, f.custom ?? {})) : stripMarkup(Object.values(f.custom ?? {})[0] ?? "");
   switch (type) {
     case "cloze": return stripMarkup(stripCloze(f.text ?? ""));
     case "mcq": return stripMarkup(f.question ?? "");
@@ -74,6 +83,7 @@ export function sortField(type: NoteType, f: NoteFields): string {
 
 /** All searchable text of a note. */
 export function searchText(type: NoteType, f: NoteFields): string {
+  if (type === "custom") return stripMarkup(customSearchText(f.custom ?? {}));
   const parts = [f.front, f.back, f.text ? stripCloze(f.text) : "", f.extra, f.question, ...(f.options ?? []), f.explanation, f.header, ...(f.masks ?? []).map((m) => m.label ?? "")];
   return stripMarkup(parts.filter(Boolean).join(" \n "));
 }
@@ -83,7 +93,8 @@ export function diffOrdinals(existing: number[], wanted: number[]): { add: numbe
 }
 
 /** Returns an error code (translated by the UI) or null when valid. */
-export function validateNote(type: NoteType, f: NoteFields): string | null {
+export function validateNote(type: NoteType, f: NoteFields, nt?: NoteTypeDef | null): string | null {
+  if (type === "custom") return nt ? validateCustomNote(nt, sanitizeValues(nt, f.custom ?? {})) : "notetype_required";
   const blank = (s?: string) => !s || !s.trim();
   switch (type) {
     case "cloze": return blank(f.text) ? "text_required" : clozeOrdinals(f.text!).length ? null : "cloze_required";
@@ -103,8 +114,9 @@ export function validateNote(type: NoteType, f: NoteFields): string | null {
 }
 
 /** Keep only the fields relevant to a type (defensive copy for persistence). */
-export function cleanFields(type: NoteType, f: NoteFields): NoteFields {
+export function cleanFields(type: NoteType, f: NoteFields, nt?: NoteTypeDef | null): NoteFields {
   const s = (v: unknown) => (typeof v === "string" ? v : "");
+  if (type === "custom") return { custom: nt ? sanitizeValues(nt, f.custom ?? {}) : Object.fromEntries(Object.entries(f.custom ?? {}).map(([k, v]) => [k, s(v)])) };
   switch (type) {
     case "cloze": return { text: s(f.text), extra: s(f.extra) };
     case "mcq": return { question: s(f.question), options: (f.options ?? []).map(s), correct: (f.correct ?? []).filter((n) => Number.isInteger(n)), explanation: s(f.explanation) };
