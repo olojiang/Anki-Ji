@@ -21,8 +21,34 @@
 | 调度 | FSRS-6（默认）/ SM-2 / Leitner；每日新卡与复习上限、学习 / 重学步长、提前学习、兄弟卡埋藏、Leech（顽固卡）自动暂停并打标签、间隔扰动 + 负载均衡 + 轻松日、凌晨 4 点（可改）按用户时区切换学习日；FSRS 参数可用自己的复习记录训练 |
 | 浏览器 | Anki 风格搜索语法 + 批量操作（移动、加 / 删标签、暂停、标记、重置、删除） |
 | 自定义学习 | 按搜索条件建立过滤牌组（如 `is:due prop:due<=3` 提前复习），可重建 / 清空，卡片记住原牌组 |
-| 导入导出 | 完整 JSON 备份（牌组、题目、卡片调度、复习记录、标签、设置、**媒体 base64**），CSV / TSV 导出（含 `fields_json` 列可无损再导入），CSV / TSV / TXT 导入（中英文表头自动识别），Anki `.apkg` 导入（基础 / 反向 / 填空，含媒体） |
+| 导入导出 | 完整 JSON 备份（牌组、题目、卡片调度、复习记录、标签、设置、**媒体 base64**），CSV / TSV 导出（含 `fields_json` 列可无损再导入）；导入支持 Anki `.apkg`、CSV / TSV / TXT、Excel、Markdown / Obsidian（含 zip 仓库与附件）、Mochi、RemNote、Quizlet、SuperMemo、Mnemosyne 与“智能粘贴”，导入前统一预览，重复导入自动去重（详见下文“导入格式”） |
 | 统计 | 今日复习与用时、连续天数、学习热力图、未来 30 天到期预测、近 30 天复习量（学习 / 复习 / 重学）、真实保留率 vs 目标、卡片状态分布、单卡复习历史 |
+
+---
+
+## 导入格式
+
+所有导入都走同一条管线：**解析器（纯函数，`src/core/io`）→ 统一中间格式 `ImportDraft` → 备份信封 → 预览 → 上传媒体 → 批量写入**。格式由 `registry.ts` 按扩展名 + 文件内容自动识别（例如改了扩展名的 `.zip` 也能认出是 Mochi / Obsidian / Mnemosyne / Excel）。
+
+| 格式 | 文件 / 方式 | 支持内容 |
+|---|---|---|
+| Anki-ji 备份 | `.json` | 全量恢复（含调度、复习记录、媒体） |
+| Anki | `.apkg` / `.colpkg` | 基础 / 反向 / 填空 + 媒体，复习进度近似转换 |
+| CSV / TSV / TXT | 文件或粘贴 | 自动识别分隔符；表头中英文均可：`deck/牌组`、`type/题型`、`front/正面/问题/term/单词/术语`、`back/背面/答案/definition/释义/定义`、`tags/标签`；Quizlet、Knowt、Brainscape、Noji 导出的 CSV 可直接用 |
+| Excel | `.xlsx` / `.xls` / `.ods` | 每个工作表按 CSV 规则读取；多个工作表默认成为“导入牌组”下的子牌组 |
+| Markdown / Obsidian | `.md`，或整个仓库打包成 `.zip` | Obsidian Spaced Repetition 语法：`问::答`、`问:::答`（双向）、多行卡片（问题行 + 单独一行 `?` / `??` + 答案行，空行结束）、`==高亮==` 与 `{{c1::…}}` 填空；`#` 标题 → 嵌套子牌组，`#标签`（含 `#a/b` → `a::b`）与 front-matter `tags` → 标签；`![[图片.png]]` / `![](路径)` 从 zip 中的附件解析并上传（仅上传被引用的文件）；文件夹 / 文件名也成为子牌组 |
+| Mochi | `.mochi`（zip：`data.edn` 或 Transit `data.json` + 媒体） | 嵌套牌组（`parent-id`）、`---` 分隔正反面、`{{填空}}` / `{{1::填空}}`、模板字段 `<< 字段 >>`、标签、`@media/` 附件；已删除（trashed）的卡片跳过 |
+| RemNote | Markdown / 文本导出（文件或粘贴） | `>>` 正向、`<<` 反向、`::` / `<>` 双向、`;;` 描述、`>>>` 多行（子项为答案）、`{{填空}}`；缩进层级 → 牌组 / 子牌组 |
+| Quizlet | 粘贴 | 预设：词条与释义之间用 制表符 / 逗号 / 自定义，卡片之间用 换行 / 分号 / 自定义（只按第一个分隔符切分） |
+| SuperMemo | 粘贴或 `.txt` 的 `Q:` / `A:`（也支持 `问：` / `答：`）；SuperMemo XML 导出 `.xml` | XML 中 Topic → 子牌组，Item → 题目 |
+| Mnemosyne | 1.x `.xml`；2.x `.cards`（zip：`cards.xml` + 媒体） | 正向 / 双向 / 词汇卡（发音、释义、备注合并到背面）/ 填空（`[词]` → `{{c1::词}}`）；第一个标签作为子牌组，所有标签保留；`<img src>` 媒体随包上传 |
+| 智能粘贴 | 粘贴任意笔记 | 按规则逐行拆卡：`Q:/A:`、`问：/答：`、编号题 + `答：` 行或缩进答案、`术语：释义`（中文冒号）、`term: definition`、`term - definition`（含 – —）、`a = b`、`a :: b`、含 `{{c1::}}` / `==高亮==` 的行 → 填空；`#` 标题 → 子牌组；无法识别的行会在预览中列出 |
+
+**预览**：导入前显示题目数、将生成的卡片数、牌组列表、媒体数、文件内重复数、**已存在将跳过**的数量、示例卡片（正 / 背面纯文本）以及解析提示。粘贴导入同样先预览再导入。
+
+**去重**：非备份格式的题目 guid 由“题型 + 字段内容”的哈希生成（Mochi / Mnemosyne 使用源 id），同一份材料再次导入会全部跳过；文件内完全相同的题目会合并；只被已存在题目引用的媒体不会重复上传（`POST /api/import/guids`）。
+
+**导入牌组**：除备份 / `.apkg` / Mochi（自带牌组结构）外，都可以指定“导入到牌组”（默认为文件名），标题 / 文件夹 / 工作表 / 层级会成为它的子牌组。
 
 ---
 
@@ -47,7 +73,8 @@ src/
 │  ├─ search.ts          搜索语法解析器 + 匹配器（永不抛错）
 │  ├─ tree.ts            通用有序树：构建、扁平化、后代 / 祖先、防环移动、分数位置、`a::b::c` 路径
 │  ├─ stats.ts / optimizer.ts / typed.ts / settings.ts
-│  └─ io/                csv.ts · backup.ts（备份信封、重映射、规范化比对）· importer.ts（ImportSink 端口）· apkg.ts · base64.ts
+│  └─ io/                backup.ts（备份信封、重映射、规范化比对）· importer.ts（ImportSink 端口）· draft.ts（统一中间格式 ImportDraft、内容 guid、预览）
+│                        registry.ts（扩展名 + 内容嗅探识别格式）· csv · xlsx · markdown · remnote · mochi（edn / transit）· quizlet · supermemo · mnemosyne · smartpaste · apkg · xml · text
 ├─ server/               薄 DB 仓储层 + 服务层（每条 SQL 都带 user_id 条件）
 │  ├─ db.ts              唯一查询入口 q()，建表（ak_ 前缀），测试可替换为 PGlite
 │  ├─ auth.ts / http.ts  密码、JWT、路由包装（鉴权 + 错误映射）
@@ -108,7 +135,7 @@ npm run dev
 BASE_URL=http://localhost:3000 node scripts/smoke.mjs
 ```
 
-测试先行（TDD）：`tests/` 下每个核心模块都有对应测试 —— 调度器（含与官方 ts-fsrs 逐步比对）、负载均衡 / fuzz / Leech、队列构建、填空解析、搜索语法、树操作与排序、CSV / JSON 备份 / `.apkg` 导入往返、统计、优化器输入、认证与跨用户数据隔离、真实 FSRS 参数训练。
+测试先行（TDD）：`tests/` 下每个核心模块都有对应测试 —— 调度器（含与官方 ts-fsrs 逐步比对）、负载均衡 / fuzz / Leech、队列构建、填空解析、搜索语法、树操作与排序、CSV / JSON 备份 / `.apkg` 导入往返、各导入格式（固定小样例文件，`tests/fixtures/import`）的解析、格式识别与“导入两次只生效一次”的去重测试、统计、优化器输入、认证与跨用户数据隔离、真实 FSRS 参数训练。
 
 ## 部署
 
@@ -120,5 +147,6 @@ BASE_URL=http://localhost:3000 node scripts/smoke.mjs
 ## 已知限制 / 后续
 
 - `.apkg`：支持旧版与新版（anki21b，zstd）包的基础 / 反向 / 填空笔记与媒体；其他自定义笔记类型按“正面 = 第一个字段、背面 = 其余字段”导入；复习进度为近似转换（间隔 → 稳定性）。不支持 `.apkg` 导出（可用 JSON / CSV）。
-- 单个媒体文件上限 4 MB。
+- Mochi / Mnemosyne / SuperMemo / RemNote 等外部格式只导入内容，不导入其复习记录（全部作为新卡）；Excel 公式按显示值导入。
+- 单个媒体文件上限 4 MB（更大的附件会被跳过）。
 - 后续：协作共享牌组、AI 生成卡片、TTS、PWA 离线。

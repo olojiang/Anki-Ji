@@ -95,6 +95,13 @@ export function dbSink(uid: number, ownedDecks: Set<number>): ImportSink {
   };
 }
 
+/** Which of these note guids the user already has (used to skip duplicates and their media before uploading). */
+export async function existingNoteGuids(uid: number, guids: string[]): Promise<string[]> {
+  if (!guids.length) return [];
+  const rows = await q("SELECT guid FROM ak_notes WHERE user_id = $1 AND guid = ANY($2::text[])", [uid, guids]);
+  return rows.map((r) => String(r.guid));
+}
+
 export async function importBackupDecks(uid: number, decks: DeckRecord[]) {
   const existing = await listDecks(uid);
   const sink = dbSink(uid, new Set(existing.map((d) => d.id)));

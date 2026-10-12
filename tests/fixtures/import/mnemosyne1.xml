@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mnemosyne core_version="1" time_of_start="1200000000">
+<category active="1"><name>French</name></category>
+<item id="abc" gr="2" e="2.5" ac_rp="1" rt_rp="0" lps="0" l_rp="10" n_rp="12"><cat>French</cat><Q>chat</Q><A>cat</A></item>
+<item id="def" u="1"><cat>French</cat><Q>chien</Q><A>dog</A></item>
+<item id="ghi"><Q>no category</Q><A>x</A></item>
+</mnemosyne>

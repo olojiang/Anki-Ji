@@ -3,17 +3,24 @@ import { useState } from "react";
 import { Download, Upload, FileJson, FileSpreadsheet, Package, Loader2, CheckCircle2 } from "lucide-react";
 import { useApp } from "@/components/providers";
 import { download } from "@/lib/api";
-import { buildFullBackup, fileToBackup, importBackup } from "@/lib/transfer";
+import { buildFullBackup, fileToImport, importBackup, withExisting } from "@/lib/transfer";
 import { Button, Card, CardHeader, Field, IconChip, Input, PageHeader, Toggle } from "@/components/ui";
-import type { Backup } from "@/core/io/backup";
+import type { ParsedImport } from "@/core/io/registry";
+import { FILE_ACCEPT, FILE_HINT, SELF_DECKED } from "@/core/io/formats";
+import { ImportPreview } from "@/components/io/ImportPreview";
+import { PasteImport } from "@/components/io/PasteImport";
+import { ti, importErrorMessage } from "@/lib/i18n-import";
 
 export default function IOPage() {
-  const { t, err } = useApp();
+  const { t, err, toast, locale } = useApp();
+  const fail = (e: unknown) => { const m = importErrorMessage(locale, e); if (m) toast(m, "error"); else err(e); };
   const [withMedia, setWithMedia] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [parsed, setParsed] = useState<{ backup: Backup; errors: number } | null>(null);
+  const [parsed, setParsed] = useState<ParsedImport | null>(null);
   const [defaultDeck, setDefaultDeck] = useState("Default");
+  const [parsedDeck, setParsedDeck] = useState("");
+  const [deckTouched, setDeckTouched] = useState(false);
   const [status, setStatus] = useState("");
   const [result, setResult] = useState<string | null>(null);
   const stamp = () => new Date().toISOString().slice(0, 10);
@@ -36,16 +43,22 @@ export default function IOPage() {
     setFile(f); setParsed(null); setResult(null);
     if (!f) return;
     setStatus(t("parsing"));
-    try { setParsed(await fileToBackup(f, defaultDeck)); } catch (e) { err(e); setFile(null); } finally { setStatus(""); }
+    const deck = deckTouched ? defaultDeck : f.name.replace(/\.[^.]+$/, "") || "Default";
+    setDefaultDeck(deck);
+    try { setParsed(await withExisting(await fileToImport(f, { defaultDeck: deck }))); setParsedDeck(deck); } catch (e) { fail(e); setFile(null); } finally { setStatus(""); }
+  };
+  const reparse = async () => {
+    if (!file || !parsed || parsedDeck === defaultDeck) return;
+    try { setParsed(await withExisting(await fileToImport(file, { defaultDeck }))); setParsedDeck(defaultDeck); } catch (e) { fail(e); }
   };
   const run = async () => {
     if (!file) return;
     setBusy("import"); setResult(null);
     try {
-      const p = parsed && !/\.(csv|tsv|txt)$/i.test(file.name) ? parsed : await fileToBackup(file, defaultDeck);
+      const p = parsed && parsedDeck === defaultDeck ? parsed : await fileToImport(file, { defaultDeck });
       const r = await importBackup(p.backup, (m) => setStatus(t(m.key === "importing" ? "importing" : m.key, m.vars)));
       setResult(t("importDone", { notes: r.notes, cards: r.cards, skipped: r.skipped }));
-    } catch (e) { err(e); } finally { setBusy(null); setStatus(""); }
+    } catch (e) { fail(e); } finally { setBusy(null); setStatus(""); }
   };
 
   return (
@@ -85,24 +98,25 @@ export default function IOPage() {
         </Card>
 
         <Card className="p-5">
-          <CardHeader className="mb-5" icon={<IconChip tone="amber"><Upload /></IconChip>} title={t("importTitle")} description={t("importDesc")} />
+          <CardHeader className="mb-5" icon={<IconChip tone="amber"><Upload /></IconChip>} title={t("importTitle")} description={ti(locale, "importDescAll")} />
           <label className="group relative flex cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border border-dashed border-border-strong px-4 py-10 text-center transition-colors hover:border-primary/60 hover:bg-primary/[0.04]"
             onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); choose(e.dataTransfer.files[0] ?? null); }}>
             <IconChip tone="neutral" size="lg" className="mb-3 transition-transform group-hover:-translate-y-0.5"><Package /></IconChip>
             <span className="text-sm font-medium">{file ? file.name : t("chooseFile")}</span>
-            <span className="num mt-1 text-[11.5px] text-faint">.json · .csv · .tsv · .txt · .apkg</span>
-            <input type="file" className="hidden" accept=".json,.csv,.tsv,.txt,.apkg,.colpkg" onChange={(e) => choose(e.target.files?.[0] ?? null)} />
+            <span className="num mt-1 max-w-full break-words text-[11.5px] leading-relaxed text-faint">{FILE_HINT}</span>
+            <input type="file" className="hidden" accept={FILE_ACCEPT} onChange={(e) => choose(e.target.files?.[0] ?? null)} />
           </label>
-          {parsed && <p className="mt-3 text-xs text-sub">{t("detected", { notes: parsed.backup.notes.length, decks: parsed.backup.decks.length, media: parsed.backup.media.length })}{parsed.errors ? ` · ${parsed.errors} ⚠` : ""}</p>}
-          {file && /\.(csv|tsv|txt)$/i.test(file.name) && <Field className="mt-3" label={t("defaultDeck")} hint={t("csvFormat")}><Input value={defaultDeck} onChange={(e) => setDefaultDeck(e.target.value)} /></Field>}
+          {parsed && <ImportPreview preview={parsed.preview} />}
+          {parsed && !SELF_DECKED.includes(parsed.format) && <Field className="mt-3" label={ti(locale, "rootDeck")} hint={parsed.format === "csv" ? t("csvFormat") : ti(locale, "rootDeckHint")}><Input value={defaultDeck} onChange={(e) => { setDefaultDeck(e.target.value); setDeckTouched(true); }} onBlur={reparse} /></Field>}
           {file && /\.apkg$/i.test(file.name) && <p className="mt-3 text-xs text-faint">{t("apkgNote")}</p>}
-          <div className="mt-4 flex items-center justify-between gap-3">
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
             <span className="min-w-0 truncate text-xs text-sub">{status && <span className="inline-flex items-center gap-1.5"><Loader2 className="h-3.5 w-3.5 animate-spin" />{status}</span>}</span>
             <Button variant="primary" disabled={!file || !!busy} loading={busy === "import"} onClick={run}><Upload className="h-4 w-4" />{t("startImport")}</Button>
           </div>
           {result && <p className="mt-3 flex animate-rise-in items-center gap-2 rounded-xl border border-success/25 bg-success/10 px-3 py-2 text-[13.5px] text-success"><CheckCircle2 className="h-4 w-4" />{result}</p>}
         </Card>
       </div>
+      <PasteImport className="mt-4" />
     </div>
   );
 }

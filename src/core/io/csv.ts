@@ -52,8 +52,8 @@ export interface FlatNote { deckPath: string; type: NoteType; fields: NoteFields
 const ALIASES: Record<string, string[]> = {
   deck: ["deck", "牌组", "卡组", "分组"],
   type: ["type", "notetype", "note type", "类型", "题型"],
-  front: ["front", "正面", "question", "问题", "text", "文本", "题目"],
-  back: ["back", "背面", "answer", "答案", "extra", "额外", "解析"],
+  front: ["front", "正面", "question", "问题", "text", "文本", "题目", "term", "word", "单词", "词语", "术语", "词条", "prompt"],
+  back: ["back", "背面", "answer", "答案", "extra", "额外", "解析", "definition", "meaning", "释义", "定义", "解释", "含义", "response"],
   tags: ["tags", "tag", "标签"],
   fields_json: ["fields_json"],
 };
@@ -116,24 +116,12 @@ export function notesToRows(notes: FlatNote[]): string[][] {
   return rows;
 }
 
-import { createBackup, type Backup, type DeckRecord, type NoteRecord } from "./backup";
-import { splitPath } from "../tree";
+import type { Backup } from "./backup";
+import { draftToBackup, newDraft } from "./draft";
 
-/** Turn flat rows into a backup (no cards: the server generates them), so CSV reuses the batch import pipeline. */
+/** Turn flat rows into a backup (no cards: the server generates them), so CSV reuses the batch import pipeline. Guids are content hashes → re-import dedupes. */
 export function flatToBackup(notes: FlatNote[], now = new Date().toISOString()): Backup {
-  const decks: DeckRecord[] = [];
-  const pathId = new Map<string, number>();
-  const ensure = (path: string) => {
-    let parent: number | null = null, acc = "";
-    for (const s of splitPath(path || "Default")) {
-      acc = acc ? `${acc}::${s.toLowerCase()}` : s.toLowerCase();
-      let id = pathId.get(acc);
-      if (id == null) { id = decks.length + 1; pathId.set(acc, id); decks.push({ id, parentId: parent, name: s, position: id, config: {}, filtered: false, filter: null, createdAt: now }); }
-      parent = id;
-    }
-    return parent!;
-  };
-  const rnd = () => (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`);
-  const out: NoteRecord[] = notes.map((n, i) => ({ id: i + 1, deckId: ensure(n.deckPath), guid: rnd(), type: n.type, fields: n.fields, tags: n.tags, position: i + 1, createdAt: now, updatedAt: now }));
-  return createBackup({ exportedAt: now, decks, notes: out, cards: [], revlog: [], tags: [...new Set(notes.flatMap((n) => n.tags))] });
+  const d = newDraft("csv");
+  d.notes.push(...notes);
+  return draftToBackup(d, now).backup;
 }
