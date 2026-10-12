@@ -1,0 +1,14 @@
+- Biology
+    - Cell >> Basic unit of life
+    - Mitochondria :: Powerhouse of the cell #organelle
+    - Answer side << Question side
+    - Photosynthesis stages >>>
+        - Light reactions
+        - Calvin cycle
+    - The {{nucleus}} holds {{DNA}}
+    - Genetics
+    	- Gene ;; Unit of heredity
+    	- Allele <> Variant of a gene
+    - plain note without card
+        - child note >> still a card here
+- Top level card >> yes

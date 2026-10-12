@@ -1,0 +1,12 @@
+Some header text that is ignored
+
+Q: What is 2+2?
+A: 4
+
+Q: Capital of
+France?
+A: Paris
+It is big.
+
+问：中国首都？
+答：北京

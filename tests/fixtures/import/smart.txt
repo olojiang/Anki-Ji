@@ -1,0 +1,19 @@
+# 生物
+1. 什么是细胞？
+答：生命的基本单位
+2. What is DNA?
+Answer: Deoxyribonucleic acid
+Q: Capital of France?
+A: Paris
+光合作用：植物利用光能合成有机物
+mitochondria - powerhouse of the cell
+ATP — energy currency
+水 = H2O
+Osmosis :: diffusion of water
+The {{c1::nucleus}} contains DNA
+细胞核内有==染色体==
+just a random line
+- bullet term: bullet definition
+3. Why is the sky blue?
+   Rayleigh scattering
+   of sunlight
