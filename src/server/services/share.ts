@@ -5,7 +5,8 @@
  * owner identity, or anything outside the subtree.
  */
 import { q } from "../db";
-import { BadRequestError, NotFoundError, getDeck, listDecks, createDeck, type Deck } from "../repo/decks";
+import { BadRequestError, NotFoundError, getDeck, listDecks, createDeck } from "../repo/decks";
+import type { Deck } from "../repo/mappers";
 import { addTags } from "../repo/tags";
 import { buildTree, descendantIds, flattenTree } from "@/core/tree";
 import { cardOrdinals, cleanFields, searchText, sortField } from "@/core/notes";

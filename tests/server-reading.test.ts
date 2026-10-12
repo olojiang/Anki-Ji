@@ -25,7 +25,7 @@ describe("incremental reading (PGlite)", () => {
     const list = await listReadingItems(a);
     expect(list.length).toBe(2);
     expect(list.find((x) => x.priority === 20)!.title).toBe("Untitled body text here");
-    expect((list[0] as Record<string, unknown>).content).toBeUndefined();
+    expect((list[0] as unknown as Record<string, unknown>).content).toBeUndefined();
     expect(list.find((x) => x.id === art)!.length).toBe("Para one.\n\nPara two.".length);
   });
 

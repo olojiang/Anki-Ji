@@ -9,6 +9,9 @@ import { Button, Card, Empty, Field, IconChip, Input, Modal, PageHeader, Pill, P
 import { buildTree, type TreeNode } from "@/core/tree";
 import type { Counts, DeckDTO } from "@/lib/types";
 import { DeckDashboard, type DashStats } from "@/components/DeckDashboard";
+import { ShareDialog } from "@/components/share-ir/ShareDialog";
+import { tsi } from "@/lib/i18n-share-ir";
+import { Link2 } from "lucide-react";
 
 type Node = TreeNode<DeckDTO>;
 type DropZone = "before" | "after" | "inside";
@@ -24,6 +27,7 @@ export default function DecksPage() {
   const [name, setName] = useState("");
   const [filter, setFilter] = useState({ query: "is:due", limit: 100, order: "due" });
   const [menu, setMenu] = useState<number | null>(null);
+  const [sharing, setSharing] = useState<DeckDTO | null>(null);
   const [drag, setDrag] = useState<{ id: number; over: number | null; zone: DropZone | null } | null>(null);
 
   const load = useCallback(async () => {
@@ -140,6 +144,7 @@ export default function DecksPage() {
                 {!n.filtered && <MenuItem icon={FolderPlus} onClick={() => { setMenu(null); setName(""); setModal({ kind: "new", parentId: n.id }); }}>{t("newSubdeck")}</MenuItem>}
                 <MenuItem icon={Pencil} onClick={() => { setMenu(null); setName(n.name); setModal({ kind: "rename", deck: n }); }}>{t("rename")}</MenuItem>
                 <MenuItem icon={Settings2} onClick={() => router.push(`/decks/${n.id}`)}>{t("options")}</MenuItem>
+                {!n.filtered && <MenuItem icon={Link2} onClick={() => { setMenu(null); setSharing(n); }}>{tsi(locale, "share")}</MenuItem>}
                 {n.filtered && <MenuItem icon={RefreshCw} onClick={() => { setMenu(null); filteredAction(n, "rebuild"); }}>{t("rebuild")}</MenuItem>}
                 {n.filtered && <MenuItem icon={Eraser} onClick={() => { setMenu(null); filteredAction(n, "empty"); }}>{t("emptyDeck")}</MenuItem>}
                 {n.parentId != null && <MenuItem icon={Layers} onClick={async () => { setMenu(null); try { await api(`/api/decks/${n.id}/move`, { body: { parentId: null, index: 9999 } }); await load(); } catch (e) { err(e); } }}>{t("moveToRoot")}</MenuItem>}
@@ -207,6 +212,7 @@ export default function DecksPage() {
       {decks && decks.length > 0 && <aside className="hidden xl:sticky xl:top-10 xl:block"><DeckDashboard due={due} next={nextDeck} stats={stats} /></aside>}
       </div>
 
+      <ShareDialog deck={sharing} onClose={() => setSharing(null)} />
       <Modal open={!!modal} onClose={() => setModal(null)}
         title={modal?.kind === "rename" ? t("rename") : modal?.kind === "filtered" ? t("newFilteredDeck") : modal?.kind === "new" && modal.parentId ? t("newSubdeck") : t("newDeck")}
         footer={<><Button variant="ghost" onClick={() => setModal(null)}>{t("cancel")}</Button><Button variant="primary" onClick={submit}>{modal?.kind === "rename" ? t("save") : t("create")}</Button></>}>

@@ -8,7 +8,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { Layers, Plus, Search, BarChart3, Tags, ArrowLeftRight, Trash2, Settings, LogOut, Languages, Menu, X, MoreHorizontal } from "lucide-react";
+import { Layers, Plus, Search, BarChart3, Tags, ArrowLeftRight, Trash2, Settings, LogOut, Languages, Menu, X, MoreHorizontal, BookOpen } from "lucide-react";
+import { tsi } from "@/lib/i18n-share-ir";
 import { useApp } from "./providers";
 import { Logo, LogoMark } from "./AuthForm";
 import { api } from "@/lib/api";
@@ -49,6 +50,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const browse: NavItem = { href: "/browse", icon: Search, label: t("navBrowse"), match: (p) => p.startsWith("/browse") || p.startsWith("/notes") };
   const stats: NavItem = { href: "/stats", icon: BarChart3, label: t("navStats") };
   const secondary: NavItem[] = [
+    { href: "/reading", icon: BookOpen, label: tsi(locale, "navReading") },
     { href: "/tags", icon: Tags, label: t("navTags") },
     { href: "/io", icon: ArrowLeftRight, label: t("navIO") },
     { href: "/trash", icon: Trash2, label: t("navTrash") },

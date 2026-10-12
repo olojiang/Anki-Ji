@@ -10,7 +10,12 @@ export async function middleware(req: NextRequest) {
   if (token) {
     try { await jwtVerify(token, new TextEncoder().encode(process.env.JWT_SECRET || "dev-only-secret-change-me-please-0000")); ok = true; } catch { ok = false; }
   }
-  if (PUBLIC.includes(pathname)) return ok ? NextResponse.redirect(new URL("/", req.url)) : NextResponse.next();
+  if (pathname.startsWith("/s/")) return NextResponse.next(); // public shared-deck pages
+  if (PUBLIC.includes(pathname)) {
+    const next = req.nextUrl.searchParams.get("next");
+    const dest = next && next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\") ? next : "/";
+    return ok ? NextResponse.redirect(new URL(dest, req.url)) : NextResponse.next();
+  }
   if (!ok) return NextResponse.redirect(new URL("/login", req.url));
   return NextResponse.next();
 }
