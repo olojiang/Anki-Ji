@@ -6,6 +6,7 @@ import { User, Palette, CalendarClock, KeyRound, AlertTriangle } from "lucide-re
 import { Button, Card, CardHeader, Field, IconChip, Input, Modal, PageHeader, Select, Spinner } from "@/components/ui";
 import { ThemeGrid } from "@/components/ThemePicker";
 import type { Me } from "@/components/Shell";
+import { ApiTokens } from "@/components/interop/ApiTokens";
 
 export default function SettingsPage() {
   const { t, err, toast, setLocale } = useApp();
@@ -59,6 +60,7 @@ export default function SettingsPage() {
         </div>
         <div className="flex justify-end"><Button onClick={async () => { try { await api("/api/auth/password", { body: pw }); setPw({ current: "", next: "" }); toast(t("saved")); } catch (e) { err(e); } }}>{t("save")}</Button></div>
       </Card>
+      <ApiTokens />
       <Card className="border-danger/30 p-5">
         <CardHeader icon={<IconChip tone="rose"><AlertTriangle /></IconChip>} title={<span className="text-danger">{t("dangerZone")}</span>} />
         <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-border bg-subtle px-4 py-3"><p className="text-[13.5px] text-sub">{t("deleteAccount")}</p><Button variant="danger" onClick={() => setDel(true)}>{t("delete")}</Button></div>

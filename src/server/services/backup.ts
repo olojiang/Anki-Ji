@@ -8,6 +8,8 @@ import { importDecks, importNotes, type ImportSink } from "@/core/io/importer";
 import { cardOrdinals, cleanFields, searchText, sortField } from "@/core/notes";
 import { NOTE_TYPES } from "@/core/types";
 import type { FilterSpec } from "../repo/mappers";
+import { userContext } from "./context";
+import { dayIndex } from "@/core/time";
 
 /** Everything the user owns, as a backup envelope (media listed by URL; the browser embeds bytes). */
 export async function exportBackup(uid: number): Promise<Backup> {
@@ -80,9 +82,12 @@ export function dbSink(uid: number, ownedDecks: Set<number>): ImportSink {
       return payload.map((p) => ids.get(key(p.note_id, p.ord))!);
     },
     async insertRevlog(items) {
+      const ctx = await userContext(uid);
+      // backups / .apkg history carry no study-day index: derive it from the review time in the user's timezone
+      const dayOf = (r: { reviewedAt: string; day?: number }) => (Number.isInteger(r.day) && r.day! > 0 ? r.day! : dayIndex(new Date(r.reviewedAt), ctx.tz, ctx.rollover));
       const payload = items.filter((i) => i.cardId).map(({ rev: r, cardId, deckId }) => ({
         card_id: cardId, deck_id: deckId, rating: r.rating, state: r.state, due: r.due, stability: r.stability, difficulty: r.difficulty, elapsed_days: r.elapsedDays,
-        scheduled_days: r.scheduledDays, duration_ms: r.durationMs, reviewed_at: r.reviewedAt, algorithm: r.algorithm, day: (r as unknown as { day?: number }).day ?? 0,
+        scheduled_days: r.scheduledDays, duration_ms: r.durationMs, reviewed_at: r.reviewedAt, algorithm: r.algorithm, day: dayOf(r as unknown as { reviewedAt: string; day?: number }),
       }));
       if (!payload.length) return;
       await q(

@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Anki-ji Capture — settings</title><link rel="stylesheet" href="style.css"></head>
+<body>
+  <div class="page">
+    <h1><img src="icons/icon32.png" alt="">Anki-ji Capture</h1>
+    <form id="form">
+      <label><span>Server URL</span><input id="server" placeholder="https://anki-ji.vercel.app" autocomplete="url"></label>
+      <label><span>API token</span><input id="token" type="password" placeholder="akj_…" autocomplete="off">
+        <div class="hint">Create one in Anki-ji → Settings → API &amp; browser extension.</div></label>
+      <div class="actions">
+        <span class="status" id="status"></span>
+        <span><button type="button" id="test">Test connection</button> <button class="primary" type="submit">Save</button></span>
+      </div>
+    </form>
+    <p class="hint">Select text on a page, then right-click → <b>Add to Anki-ji</b>, or press <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd>. Change the shortcut at <code>chrome://extensions/shortcuts</code>.</p>
+  </div>
+  <script type="module" src="options.js"></script>
+</body>
+</html>

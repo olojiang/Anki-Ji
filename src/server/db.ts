@@ -1,4 +1,5 @@
 import { neon, neonConfig } from "@neondatabase/serverless";
+import { INTEROP_STATEMENTS } from "./schema/interop";
 
 // Dev/test only: point the HTTP driver at a local Neon-compatible endpoint (PGlite shim).
 if (process.env.NEON_FETCH_ENDPOINT) neonConfig.fetchEndpoint = process.env.NEON_FETCH_ENDPOINT;
@@ -128,6 +129,7 @@ const STATEMENTS = [
     size INT NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`,
+  ...INTEROP_STATEMENTS,
 ];
 
 let schemaPromise: Promise<void> | null = null;
