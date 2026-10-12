@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SuperMemo collection export -->
+<SuperMemoCollection>
+  <Count>4</Count>
+  <SuperMemoElement>
+    <ID>1</ID><Title>Geography</Title><Type>Topic</Type>
+    <SuperMemoElement>
+      <ID>2</ID><Title>Capital of France?</Title><Type>Item</Type>
+      <Content><Question>Capital of France?</Question><Answer>Paris</Answer></Content>
+    </SuperMemoElement>
+    <SuperMemoElement>
+      <ID>3</ID><Title>Europe</Title><Type>Topic</Type>
+      <SuperMemoElement><ID>4</ID><Type>Item</Type><Content><Question><![CDATA[<b>Largest</b> country?]]></Question><Answer>Russia &amp; more &#x4E2D;&#22269;</Answer></Content></SuperMemoElement>
+    </SuperMemoElement>
+  </SuperMemoElement>
+</SuperMemoCollection>
