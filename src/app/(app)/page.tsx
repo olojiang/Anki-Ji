@@ -2,10 +2,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronRight, Plus, MoreHorizontal, Play, Settings2, Pencil, Trash2, FolderPlus, Filter, RefreshCw, Eraser, Flame, CheckCircle2, GripVertical, Layers } from "lucide-react";
+import { ChevronRight, Plus, MoreHorizontal, Play, Settings2, Pencil, Trash2, FolderPlus, Filter, RefreshCw, Eraser, Flame, CheckCircle2, GripVertical, Layers, Sparkles } from "lucide-react";
 import { useApp } from "@/components/providers";
 import { api } from "@/lib/api";
-import { Button, Card, Empty, Field, Input, Modal, PageHeader, Select, Spinner, cx } from "@/components/ui";
+import { Button, Card, Empty, Field, IconChip, Input, Modal, PageHeader, Pill, ProgressRing, Select, Spinner, cx, type Tone } from "@/components/ui";
 import { buildTree, type TreeNode } from "@/core/tree";
 import type { Counts, DeckDTO } from "@/lib/types";
 
@@ -13,7 +13,7 @@ type Node = TreeNode<DeckDTO>;
 type DropZone = "before" | "after" | "inside";
 
 export default function DecksPage() {
-  const { t, err, toast } = useApp();
+  const { t, err, toast, locale } = useApp();
   const router = useRouter();
   const [decks, setDecks] = useState<DeckDTO[] | null>(null);
   const [counts, setCounts] = useState<Counts>({});
@@ -43,6 +43,7 @@ export default function DecksPage() {
   }, []);
 
   const tree = useMemo(() => buildTree(decks ?? []), [decks]);
+  const due = useMemo(() => tree.reduce((a, n) => { const c = counts[n.id]; return c ? { new: a.new + c.new, learning: a.learning + c.learning, review: a.review + c.review } : a; }, { new: 0, learning: 0, review: 0 }), [tree, counts]);
   const toggle = (id: number) => {
     const n = new Set(collapsed);
     if (n.has(id)) n.delete(id); else n.add(id);
@@ -104,40 +105,43 @@ export default function DecksPage() {
           }}
           onDrop={(e) => { e.preventDefault(); onDrop(n, drag?.zone ?? "inside"); }}
           className={cx(
-            "group relative flex items-center gap-2 border-t border-border px-3 py-2.5 transition-colors hover:bg-muted/50",
+            "group relative flex h-[52px] items-center gap-1.5 border-t sm:gap-2 border-border/80 px-3 transition-colors duration-150 hover:bg-subtle",
             drag?.id === n.id && "opacity-40",
             isOver && drag?.zone === "inside" && "bg-primary/10 ring-1 ring-inset ring-primary/40",
           )}
         >
           {isOver && drag?.zone === "before" && <div className="absolute inset-x-2 top-0 h-0.5 rounded bg-primary" />}
           {isOver && drag?.zone === "after" && <div className="absolute inset-x-2 bottom-0 h-0.5 rounded bg-primary" />}
-          <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-faint opacity-0 transition-opacity group-hover:opacity-100" />
-          <div style={{ width: depth * 20 }} className="shrink-0" />
-          <button onClick={() => hasKids && toggle(n.id)} className={cx("inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-faint", hasKids ? "hover:bg-muted" : "invisible")} aria-label="toggle">
-            <ChevronRight className={cx("h-4 w-4 transition-transform", open && "rotate-90")} />
+          <GripVertical className="hidden h-4 w-4 shrink-0 cursor-grab text-faint opacity-0 transition-opacity group-hover:opacity-100 sm:block" />
+          <div style={{ width: depth * 22 }} className="hidden shrink-0 sm:block" />
+          <div style={{ width: depth * 12 }} className="shrink-0 sm:hidden" />
+          <button onClick={() => hasKids && toggle(n.id)} className={cx("inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-faint transition-colors", hasKids ? "hover:bg-muted hover:text-fg" : "invisible")} aria-label="toggle">
+            <ChevronRight className={cx("h-4 w-4 transition-transform duration-200", open && "rotate-90")} />
           </button>
-          <Link href={`/study/${n.id}`} className="flex min-w-0 flex-1 items-center gap-2 text-[14.5px] font-medium text-fg hover:text-primary">
+          <ProgressRing value={c.total ? 1 - Math.min(1, (c.new + c.learning + c.review) / c.total) : 0} size={22} stroke={2.5} className="hidden sm:inline-flex"
+            title={t("clearedPct", { p: c.total ? Math.round((1 - Math.min(1, (c.new + c.learning + c.review) / c.total)) * 100) : 0 })} />
+          <Link href={`/study/${n.id}`} className="flex min-w-0 flex-1 items-center gap-2 text-[14px] font-medium tracking-[-0.01em] text-fg transition-colors hover:text-primary">
             {n.filtered && <Filter className="h-3.5 w-3.5 shrink-0 text-primary" />}
             <span className="truncate">{n.name}</span>
-            <span className="hidden shrink-0 text-xs font-normal text-faint sm:inline">{c.total}</span>
+            <span className="num hidden shrink-0 text-[11.5px] font-normal text-faint sm:inline">{c.total}</span>
           </Link>
-          <div className="flex shrink-0 items-center gap-1 text-right font-mono text-[13px] tabular-nums">
-            <span className={cx("w-12", c.new ? "text-primary" : "text-faint/60")}>{c.new}</span>
-            <span className={cx("w-12", c.learning ? "text-again" : "text-faint/60")}>{c.learning}</span>
-            <span className={cx("w-12", c.review ? "text-easy" : "text-faint/60")}>{c.review}</span>
+          <div className="flex shrink-0 items-center sm:gap-1">
+            <CountPill n={c.new} tone="sky" />
+            <CountPill n={c.learning} tone="rose" />
+            <CountPill n={c.review} tone="emerald" />
           </div>
           <div className="relative flex shrink-0 items-center">
-            <Link href={`/study/${n.id}`} className="hidden h-8 w-8 items-center justify-center rounded-lg text-sub hover:bg-muted hover:text-primary sm:inline-flex" title={t("study")}><Play className="h-4 w-4" /></Link>
-            <button onClick={(e) => { e.stopPropagation(); setMenu(menu === n.id ? null : n.id); }} className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-sub hover:bg-muted" aria-label={t("more")}><MoreHorizontal className="h-4 w-4" /></button>
+            <Link href={`/study/${n.id}`} className="hidden h-8 w-8 items-center justify-center rounded-lg text-faint transition-all hover:bg-primary/10 hover:text-primary group-hover:text-sub sm:inline-flex" title={t("study")}><Play className="h-4 w-4" /></Link>
+            <button onClick={(e) => { e.stopPropagation(); setMenu(menu === n.id ? null : n.id); }} className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-faint transition-colors hover:bg-muted hover:text-fg group-hover:text-sub" aria-label={t("more")}><MoreHorizontal className="h-4 w-4" /></button>
             {menu === n.id && (
-              <div className="absolute right-0 top-9 z-20 w-48 overflow-hidden rounded-lg border border-border bg-surface py-1 shadow-pop" onClick={(e) => e.stopPropagation()}>
+              <div className="absolute right-0 top-9 z-20 w-52 origin-top-right animate-scale-in overflow-hidden rounded-xl border border-border bg-elevated p-1 shadow-pop" onClick={(e) => e.stopPropagation()}>
                 {!n.filtered && <MenuItem icon={FolderPlus} onClick={() => { setMenu(null); setName(""); setModal({ kind: "new", parentId: n.id }); }}>{t("newSubdeck")}</MenuItem>}
                 <MenuItem icon={Pencil} onClick={() => { setMenu(null); setName(n.name); setModal({ kind: "rename", deck: n }); }}>{t("rename")}</MenuItem>
                 <MenuItem icon={Settings2} onClick={() => router.push(`/decks/${n.id}`)}>{t("options")}</MenuItem>
                 {n.filtered && <MenuItem icon={RefreshCw} onClick={() => { setMenu(null); filteredAction(n, "rebuild"); }}>{t("rebuild")}</MenuItem>}
                 {n.filtered && <MenuItem icon={Eraser} onClick={() => { setMenu(null); filteredAction(n, "empty"); }}>{t("emptyDeck")}</MenuItem>}
                 {n.parentId != null && <MenuItem icon={Layers} onClick={async () => { setMenu(null); try { await api(`/api/decks/${n.id}/move`, { body: { parentId: null, index: 9999 } }); await load(); } catch (e) { err(e); } }}>{t("moveToRoot")}</MenuItem>}
-                <div className="my-1 border-t border-border" />
+                <div className="-mx-1 my-1 border-t border-border" />
                 <MenuItem icon={Trash2} danger onClick={() => { setMenu(null); remove(n); }}>{t("delete")}</MenuItem>
               </div>
             )}
@@ -151,31 +155,50 @@ export default function DecksPage() {
   return (
     <div>
       <PageHeader
+        eyebrow={new Date().toLocaleDateString(locale === "zh" ? "zh-CN" : "en-US", { month: "long", day: "numeric", weekday: "long" })}
         title={t("decks")}
-        subtitle={stats ? (
-          <span className="inline-flex flex-wrap items-center gap-x-4 gap-y-1">
-            <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-primary" />{t("todayDone", { n: stats.today.reviews })}</span>
-            <span className="inline-flex items-center gap-1.5"><Flame className="h-4 w-4 text-hard" />{t("streakDays", { n: stats.streak })}</span>
-          </span>
-        ) : undefined}
         actions={<>
           <Button onClick={() => { setName(""); setFilter({ query: "is:due", limit: 100, order: "due" }); setModal({ kind: "filtered" }); }}><Filter className="h-4 w-4" />{t("filteredDeck")}</Button>
           <Button variant="primary" onClick={() => { setName(""); setModal({ kind: "new", parentId: null }); }}><Plus className="h-4 w-4" />{t("newDeck")}</Button>
         </>}
       />
+      {decks && decks.length > 0 && (
+        <div className="mb-6 grid gap-3 sm:grid-cols-3">
+          <Card className="relative overflow-hidden p-4">
+            <div className="pointer-events-none absolute -right-10 -top-12 h-32 w-32 rounded-full bg-primary/10 blur-2xl" />
+            <div className="flex items-center gap-2.5 text-[12.5px] font-medium text-sub"><IconChip tone="primary" size="sm"><Sparkles /></IconChip>{t("dueToday")}</div>
+            <div className="mt-3 flex items-end justify-between gap-3">
+              <div className="num text-[30px] font-semibold leading-none text-fg">{due.new + due.learning + due.review}</div>
+              <div className="flex gap-1">
+                <Pill tone="sky" mono title={t("colNew")}>{due.new}</Pill>
+                <Pill tone="rose" mono title={t("colLearn")}>{due.learning}</Pill>
+                <Pill tone="emerald" mono title={t("colDue")}>{due.review}</Pill>
+              </div>
+            </div>
+          </Card>
+          <Card className="p-4">
+            <div className="flex items-center gap-2.5 text-[12.5px] font-medium text-sub"><IconChip tone="emerald" size="sm"><CheckCircle2 /></IconChip>{t("reviewedToday")}</div>
+            <div className="mt-3 flex items-end gap-1.5"><span className="num text-[30px] font-semibold leading-none text-fg">{stats?.today.reviews ?? "—"}</span><span className="pb-0.5 text-xs text-faint">{t("cardsUnit")}</span></div>
+          </Card>
+          <Card className="p-4">
+            <div className="flex items-center gap-2.5 text-[12.5px] font-medium text-sub"><IconChip tone="orange" size="sm"><Flame /></IconChip>{t("streak")}</div>
+            <div className="mt-3 flex items-end gap-1.5"><span className="num text-[30px] font-semibold leading-none text-fg">{stats?.streak ?? "—"}</span><span className="pb-0.5 text-xs text-faint">{t("days")}</span></div>
+          </Card>
+        </div>
+      )}
       {decks === null ? <div className="flex justify-center py-20"><Spinner /></div> : decks.length === 0 ? (
-        <Empty icon={<Layers className="h-8 w-8" />} title={t("noDecks")}><Button variant="primary" onClick={() => setModal({ kind: "new", parentId: null })}><Plus className="h-4 w-4" />{t("newDeck")}</Button></Empty>
+        <Empty icon={<Layers />} title={t("noDecks")}><Button variant="primary" onClick={() => setModal({ kind: "new", parentId: null })}><Plus className="h-4 w-4" />{t("newDeck")}</Button></Empty>
       ) : (
         <Card className="overflow-visible">
-          <div className="flex items-center gap-2 border-b border-border px-3 py-2 text-xs font-medium text-faint">
-            <span className="flex-1 pl-11">{t("deck")}</span>
-            <span className="flex gap-1 text-right font-mono"><span className="w-12">{t("colNew")}</span><span className="w-12">{t("colLearn")}</span><span className="w-12">{t("colDue")}</span></span>
+          <div className="flex h-10 items-center gap-2 rounded-t-2xl border-b border-border bg-subtle/70 px-3 text-[11.5px] font-medium uppercase tracking-[0.04em] text-faint">
+            <span className="flex-1 pl-8 sm:pl-[86px]">{t("deck")}</span>
+            <span className="flex text-center sm:gap-1"><span className="w-11 sm:w-14">{t("colNew")}</span><span className="w-11 sm:w-14">{t("colLearn")}</span><span className="w-11 sm:w-14">{t("colDue")}</span></span>
             <span className="w-8 sm:w-16" />
           </div>
-          <div className="[&>div:first-child>div:first-child]:border-t-0">{tree.map((n) => row(n, 0))}</div>
+          <div className="[&>div:first-child>div:first-child]:border-t-0 [&>div:last-child>div:last-child]:rounded-b-2xl">{tree.map((n) => row(n, 0))}</div>
         </Card>
       )}
-      {decks && decks.length > 1 && <p className="mt-3 text-xs text-faint">{t("dragHint")}</p>}
+      {decks && decks.length > 1 && <p className="mt-3 px-1 text-xs text-faint">{t("dragHint")}</p>}
 
       <Modal open={!!modal} onClose={() => setModal(null)}
         title={modal?.kind === "rename" ? t("rename") : modal?.kind === "filtered" ? t("newFilteredDeck") : modal?.kind === "new" && modal.parentId ? t("newSubdeck") : t("newDeck")}
@@ -201,8 +224,16 @@ export default function DecksPage() {
 
 function MenuItem({ icon: Icon, children, onClick, danger }: { icon: typeof Plus; children: React.ReactNode; onClick: () => void; danger?: boolean }) {
   return (
-    <button onClick={onClick} className={cx("flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm hover:bg-muted", danger ? "text-again" : "text-fg")}>
+    <button onClick={onClick} className={cx("flex h-8 w-full items-center gap-2.5 rounded-md px-2.5 text-left text-[13px] transition-colors", danger ? "text-danger hover:bg-rose-500/10" : "text-fg hover:bg-muted")}>
       <Icon className="h-4 w-4 opacity-70" />{children}
     </button>
+  );
+}
+
+function CountPill({ n, tone }: { n: number; tone: Tone }) {
+  return (
+    <span className="flex w-11 justify-center sm:w-14">
+      {n > 0 ? <Pill tone={tone} mono className="min-w-[30px] justify-center px-1.5 sm:min-w-[34px]">{n}</Pill> : <span className="num text-[12px] text-faint/50">0</span>}
+    </span>
   );
 }

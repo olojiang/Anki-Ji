@@ -4,7 +4,7 @@ import { Download, Upload, FileJson, FileSpreadsheet, Package, Loader2, CheckCir
 import { useApp } from "@/components/providers";
 import { download } from "@/lib/api";
 import { buildFullBackup, fileToBackup, importBackup } from "@/lib/transfer";
-import { Button, Card, Field, Input, PageHeader, Toggle } from "@/components/ui";
+import { Button, Card, CardHeader, Field, IconChip, Input, PageHeader, Toggle } from "@/components/ui";
 import type { Backup } from "@/core/io/backup";
 
 export default function IOPage() {
@@ -53,11 +53,11 @@ export default function IOPage() {
       <PageHeader title={t("ioTitle")} />
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="p-5">
-          <h2 className="mb-4 flex items-center gap-2 text-[15px] font-semibold"><Download className="h-4 w-4 text-primary" />{t("exportTitle")}</h2>
+          <CardHeader className="mb-5" icon={<IconChip tone="sky"><Download /></IconChip>} title={t("exportTitle")} />
           <div className="space-y-4">
-            <div className="rounded-lg border border-border p-4">
+            <div className="rounded-xl border border-border bg-subtle p-4 transition-colors hover:border-border-strong">
               <div className="flex items-start gap-3">
-                <FileJson className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                <IconChip tone="teal" size="sm" className="mt-0.5"><FileJson /></IconChip>
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-medium">{t("exportJson")}</div>
                   <p className="mt-1 text-xs leading-relaxed text-sub">{t("exportJsonDesc")}</p>
@@ -68,9 +68,9 @@ export default function IOPage() {
                 </div>
               </div>
             </div>
-            <div className="rounded-lg border border-border p-4">
+            <div className="rounded-xl border border-border bg-subtle p-4 transition-colors hover:border-border-strong">
               <div className="flex items-start gap-3">
-                <FileSpreadsheet className="mt-0.5 h-5 w-5 shrink-0 text-easy" />
+                <IconChip tone="emerald" size="sm" className="mt-0.5"><FileSpreadsheet /></IconChip>
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-medium">CSV / TSV</div>
                   <p className="mt-1 text-xs leading-relaxed text-sub">{t("exportCsvDesc")}</p>
@@ -85,13 +85,12 @@ export default function IOPage() {
         </Card>
 
         <Card className="p-5">
-          <h2 className="mb-1 flex items-center gap-2 text-[15px] font-semibold"><Upload className="h-4 w-4 text-primary" />{t("importTitle")}</h2>
-          <p className="mb-4 text-xs text-sub">{t("importDesc")}</p>
-          <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-border px-4 py-8 text-center transition-colors hover:border-primary/50 hover:bg-primary/5"
+          <CardHeader className="mb-5" icon={<IconChip tone="amber"><Upload /></IconChip>} title={t("importTitle")} description={t("importDesc")} />
+          <label className="group relative flex cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border border-dashed border-border-strong px-4 py-10 text-center transition-colors hover:border-primary/60 hover:bg-primary/[0.04]"
             onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); choose(e.dataTransfer.files[0] ?? null); }}>
-            <Package className="mb-2 h-7 w-7 text-faint" />
+            <IconChip tone="neutral" size="lg" className="mb-3 transition-transform group-hover:-translate-y-0.5"><Package /></IconChip>
             <span className="text-sm font-medium">{file ? file.name : t("chooseFile")}</span>
-            <span className="mt-1 text-xs text-faint">.json · .csv · .tsv · .txt · .apkg</span>
+            <span className="num mt-1 text-[11.5px] text-faint">.json · .csv · .tsv · .txt · .apkg</span>
             <input type="file" className="hidden" accept=".json,.csv,.tsv,.txt,.apkg,.colpkg" onChange={(e) => choose(e.target.files?.[0] ?? null)} />
           </label>
           {parsed && <p className="mt-3 text-xs text-sub">{t("detected", { notes: parsed.backup.notes.length, decks: parsed.backup.decks.length, media: parsed.backup.media.length })}{parsed.errors ? ` · ${parsed.errors} ⚠` : ""}</p>}
@@ -101,7 +100,7 @@ export default function IOPage() {
             <span className="min-w-0 truncate text-xs text-sub">{status && <span className="inline-flex items-center gap-1.5"><Loader2 className="h-3.5 w-3.5 animate-spin" />{status}</span>}</span>
             <Button variant="primary" disabled={!file || !!busy} loading={busy === "import"} onClick={run}><Upload className="h-4 w-4" />{t("startImport")}</Button>
           </div>
-          {result && <p className="mt-3 flex items-center gap-2 rounded-lg bg-easy/10 px-3 py-2 text-sm text-easy"><CheckCircle2 className="h-4 w-4" />{result}</p>}
+          {result && <p className="mt-3 flex animate-rise-in items-center gap-2 rounded-xl border border-success/25 bg-success/10 px-3 py-2 text-[13.5px] text-success"><CheckCircle2 className="h-4 w-4" />{result}</p>}
         </Card>
       </div>
     </div>

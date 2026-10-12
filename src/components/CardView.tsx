@@ -43,7 +43,7 @@ export function CardView({ card, revealed, typed, onTyped, picked, onPick, onSub
           <Occlusion {...card.occlusion} revealed={revealed} />
         </div>
       ) : (
-        (!revealed || card.showFrontOnBack) && <Markdown text={card.front} className="text-[19px] sm:text-[21px]" />
+        (!revealed || card.showFrontOnBack) && <Markdown text={card.front} className="text-[19px] font-medium tracking-[-0.01em] sm:text-[22px]" />
       )}
 
       {card.kind === "mcq" && (
@@ -53,20 +53,20 @@ export function CardView({ card, revealed, typed, onTyped, picked, onPick, onSub
             const isCorrect = card.correct?.includes(i);
             return (
               <button key={i} disabled={revealed} onClick={() => onPick?.(i)}
-                className={cx("flex items-start gap-3 rounded-lg border px-4 py-3 text-[15px] transition-colors",
-                  !revealed && (isPicked ? "border-primary bg-primary/10" : "border-border hover:bg-muted"),
-                  revealed && isCorrect && "border-easy bg-easy/10",
-                  revealed && !isCorrect && isPicked && "border-again bg-again/10",
-                  revealed && !isCorrect && !isPicked && "border-border opacity-60")}>
-                <span className={cx("mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center border text-[11px] font-semibold", multi ? "rounded" : "rounded-full", isPicked ? "border-primary bg-primary text-primary-fg" : "border-border text-faint")}>{String.fromCharCode(65 + i)}</span>
+                className={cx("group flex items-start gap-3 rounded-xl border px-4 py-3 text-[15px] transition-all duration-150",
+                  !revealed && (isPicked ? "border-primary/60 bg-primary/[0.07] shadow-[0_0_0_3px_rgb(var(--primary)/0.12)]" : "border-border bg-surface shadow-xs hover:-translate-y-px hover:border-border-strong hover:shadow-md"),
+                  revealed && isCorrect && "border-success/50 bg-success/[0.08]",
+                  revealed && !isCorrect && isPicked && "border-danger/50 bg-danger/[0.08]",
+                  revealed && !isCorrect && !isPicked && "border-border opacity-55")}>
+                <span className={cx("mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center border font-mono text-[10.5px] font-semibold transition-colors", multi ? "rounded-md" : "rounded-full", isPicked ? "border-primary bg-primary text-primary-fg" : "border-border-strong bg-subtle text-faint group-hover:text-sub")}>{String.fromCharCode(65 + i)}</span>
                 <Markdown text={o} className="min-w-0 flex-1 text-left [&_p]:m-0" />
-                {revealed && isCorrect && <Check className="h-4 w-4 text-easy" />}
-                {revealed && !isCorrect && isPicked && <X className="h-4 w-4 text-again" />}
+                {revealed && isCorrect && <Check className="mt-0.5 h-4 w-4 text-success" />}
+                {revealed && !isCorrect && isPicked && <X className="mt-0.5 h-4 w-4 text-danger" />}
               </button>
             );
           })}
-          {!revealed && <p className="text-center text-xs text-faint">{t("choose")}</p>}
-          {revealed && picked && <p className={cx("text-center text-sm font-medium", sameSet(picked, card.correct ?? []) ? "text-easy" : "text-again")}>{sameSet(picked, card.correct ?? []) ? t("correctPick") : t("wrongPick")}</p>}
+          {!revealed && <p className="mt-1 text-center text-xs text-faint">{t("choose")}</p>}
+          {revealed && picked && <p className={cx("mt-1 animate-reveal text-center text-[13.5px] font-medium", sameSet(picked, card.correct ?? []) ? "text-success" : "text-danger")}>{sameSet(picked, card.correct ?? []) ? t("correctPick") : t("wrongPick")}</p>}
         </div>
       )}
 
@@ -74,7 +74,7 @@ export function CardView({ card, revealed, typed, onTyped, picked, onPick, onSub
         <div className="mx-auto mt-6 max-w-md">
           {!revealed ? (
             <input autoFocus value={typed ?? ""} onChange={(e) => onTyped?.(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); onSubmitTyped?.(); } }}
-              placeholder={t("typeAnswerPh")} className="focus-ring h-11 w-full rounded-lg border border-border bg-surface px-3 text-center font-mono text-base" />
+              placeholder={t("typeAnswerPh")} className="focus-ring h-12 w-full rounded-xl border border-border bg-subtle px-4 text-center font-mono text-base shadow-inner transition-colors focus:border-primary/60 focus:bg-surface" />
           ) : (
             <TypedResult typed={typed ?? ""} expected={card.typeAnswer ?? ""} />
           )}
@@ -82,10 +82,10 @@ export function CardView({ card, revealed, typed, onTyped, picked, onPick, onSub
       )}
 
       {revealed && (
-        <>
-          {(card.showFrontOnBack || card.kind === "occlusion") && card.back && <hr className="mx-auto my-6 max-w-xl border-border" />}
-          {card.back && <Markdown text={card.back} className={cx(card.showFrontOnBack || card.kind === "occlusion" ? "text-[17px] text-fg" : "text-[19px] sm:text-[21px]")} />}
-        </>
+        <div className="animate-reveal">
+          {(card.showFrontOnBack || card.kind === "occlusion") && card.back && <div className="mx-auto my-7 flex max-w-xl items-center gap-3"><span className="h-px flex-1 bg-gradient-to-r from-transparent to-border" /><span className="h-1.5 w-1.5 rounded-full bg-primary/50" /><span className="h-px flex-1 bg-gradient-to-l from-transparent to-border" /></div>}
+          {card.back && <Markdown text={card.back} className={cx(card.showFrontOnBack || card.kind === "occlusion" ? "text-[17px] text-sub" : "text-[19px] sm:text-[22px]")} />}
+        </div>
       )}
     </div>
   );
@@ -97,11 +97,11 @@ function TypedResult({ typed, expected }: { typed: string; expected: string }) {
   const { t } = useApp();
   const r = compareTyped(typed, expected);
   return (
-    <div className="rounded-lg border border-border bg-muted/50 p-3 text-left font-mono text-[15px]">
+    <div className="animate-reveal rounded-xl border border-border bg-subtle p-4 text-left font-mono text-[15px]">
       <div className="mb-1 text-xs font-sans text-faint">{t("yourAnswer")}</div>
       <div className="break-all">
-        {r.correct ? <span className="text-easy">{typed.trim()}</span> : r.segments.map((s, i) => (
-          <span key={i} className={s.kind === "ok" ? "text-easy" : s.kind === "wrong" ? "bg-again/15 text-again line-through" : "bg-hard/15 text-hard"}>{s.text}</span>
+        {r.correct ? <span className="text-success">{typed.trim()}</span> : r.segments.map((s, i) => (
+          <span key={i} className={s.kind === "ok" ? "text-success" : s.kind === "wrong" ? "rounded-sm bg-danger/15 text-danger line-through" : "rounded-sm bg-warning/15 text-warning"}>{s.text}</span>
         ))}
       </div>
       {!r.correct && <><div className="mb-1 mt-2 text-xs font-sans text-faint">{t("correctAnswer")}</div><div className="break-all text-fg">{expected}</div></>}

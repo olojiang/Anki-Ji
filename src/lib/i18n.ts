@@ -107,6 +107,17 @@ export const DICT = {
   easyDays: ["轻松日（减少当天复习）", "Easy days (lighter days)"], normal: ["正常", "Normal"], reduced: ["减少", "Reduced"], minimum: ["最少", "Minimum"],
   learnAhead: ["提前学习限制（分钟）", "Learn-ahead limit (min)"], applyToChildren: ["同时应用到所有子牌组", "Also apply to all sub-decks"],
   weekdays: ["日,一,二,三,四,五,六", "Sun,Mon,Tue,Wed,Thu,Fri,Sat"],
+  // redesign (visual-only strings)
+  heroTitleA: ["记得更牢，", "Remember more."], heroTitleB: ["复习更少。", "Review less."],
+  heroSub: ["基于 FSRS-6 记忆模型，在你快要遗忘的那一刻安排复习。无限层级牌组、富文本卡片、完整导入导出。", "FSRS-6 schedules each review right before you'd forget. Nested decks, rich cards, full import & export."],
+  heroFoot: ["数据随时可导出 · 浅色 / 深色主题 · 中英双语", "Export any time · Light & dark · 中文 / English"],
+  heroNext: ["下次复习", "Next review"], heroRetention: ["保留率", "Retention"], heroStreak: ["连续学习", "Streak"], days: ["天", "days"],
+  dueToday: ["今日待学", "Due today"], reviewedToday: ["今日已复习", "Reviewed today"], cardsUnit: ["张", "cards"],
+  allClear: ["今天的任务都完成了", "All caught up for today"], clearedPct: ["今日已清 {p}%", "{p}% clear today"],
+  sessionDone: ["本次已复习 {n} 张", "{n} reviewed this session"], remaining: ["剩余", "left"],
+  less: ["少", "Less"], more_: ["多", "More"], peak: ["峰值", "Peak"], total: ["合计", "Total"],
+  signedInAs: ["当前账号", "Signed in as"],
+  themeHint: ["主题跟随账号保存，并在本设备即时生效", "Saved to your account and applied instantly on this device"],
   // errors
   e_invalid_credentials: ["邮箱或密码错误", "Wrong email or password"], e_email_taken: ["该邮箱已注册", "Email already registered"], e_invalid_email: ["邮箱格式不正确", "Invalid email"],
   e_password_too_short: ["密码至少 8 位", "Password must be at least 8 characters"], e_front_required: ["请填写正面", "Front is required"], e_text_required: ["请填写文本", "Text is required"],

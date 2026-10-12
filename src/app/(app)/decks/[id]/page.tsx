@@ -18,10 +18,10 @@ const parseSteps = (s: string) => s.split(/[\s,]+/).filter(Boolean).map((x) => {
 
 function Section({ title, children, hint }: { title: string; children: ReactNode; hint?: string }) {
   return (
-    <Card className="p-5">
-      <h2 className="text-sm font-semibold">{title}</h2>
-      {hint && <p className="mt-0.5 text-xs text-faint">{hint}</p>}
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">{children}</div>
+    <Card className="p-5 sm:p-6">
+      <h2 className="text-[14px] font-semibold tracking-[-0.01em]">{title}</h2>
+      {hint && <p className="mt-1 text-xs text-faint">{hint}</p>}
+      <div className="mt-5 grid gap-4 sm:grid-cols-2">{children}</div>
     </Card>
   );
 }
@@ -84,7 +84,7 @@ export default function DeckOptionsPage({ params }: { params: Promise<{ id: stri
           <Field label={t("algorithm")} className="sm:col-span-2">
             <div className="grid grid-cols-3 gap-2">
               {(["fsrs", "sm2", "leitner"] as const).map((a) => (
-                <button key={a} onClick={() => set({ algorithm: a })} className={cx("rounded-lg border px-3 py-2.5 text-left text-sm transition-colors", c.algorithm === a ? "border-primary bg-primary/10 font-medium text-fg" : "border-border text-sub hover:bg-muted")}>
+                <button key={a} onClick={() => set({ algorithm: a })} className={cx("rounded-xl border px-3 py-3 text-left text-[13.5px] transition-all duration-150", c.algorithm === a ? "border-primary/60 bg-primary/[0.07] font-medium text-fg shadow-[0_0_0_3px_rgb(var(--primary)/0.12)]" : "border-border bg-surface text-sub hover:border-border-strong hover:text-fg")}>
                   {t(a === "fsrs" ? "algoFsrs" : a === "sm2" ? "algoSm2" : "algoLeitner")}
                 </button>
               ))}
@@ -110,7 +110,7 @@ export default function DeckOptionsPage({ params }: { params: Promise<{ id: stri
             <Field label={t("maxInterval")}>{num("maxInterval")}</Field>
             <div className="sm:col-span-2">
               <span className="mb-1.5 block text-[13px] font-medium text-sub">{t("weights")}</span>
-              <div className="rounded-lg border border-border bg-muted/40 p-3 font-mono text-[11.5px] leading-5 text-sub break-all">{c.fsrsWeights ? c.fsrsWeights.join(", ") : t("defaultWeights")}</div>
+              <div className="rounded-xl border border-border bg-subtle p-3 font-mono text-[11.5px] leading-5 text-sub break-all">{c.fsrsWeights ? c.fsrsWeights.join(", ") : t("defaultWeights")}</div>
               <div className="mt-2 flex flex-wrap gap-2">
                 <Button size="sm" loading={opt} onClick={optimize}><Sparkles className="h-3.5 w-3.5" />{opt ? t("optimizing") : t("optimize")}</Button>
                 {c.fsrsWeights && <Button size="sm" variant="ghost" onClick={() => set({ fsrsWeights: null })}><RotateCcw className="h-3.5 w-3.5" />{t("resetWeights")}</Button>}
@@ -166,7 +166,7 @@ export default function DeckOptionsPage({ params }: { params: Promise<{ id: stri
           <Field label={t("reviewOrder")}><Select className="w-full" value={c.reviewOrder} onChange={(e) => set({ reviewOrder: e.target.value as DeckConfig["reviewOrder"] })}><option value="due">{t("revDue")}</option><option value="retrievability">{t("revRetr")}</option><option value="random">{t("revRandom")}</option></Select></Field>
           <Field label={t("mix")}><Select className="w-full" value={c.newReviewMix} onChange={(e) => set({ newReviewMix: e.target.value as DeckConfig["newReviewMix"] })}><option value="mix">{t("mixMix")}</option><option value="newFirst">{t("mixNewFirst")}</option><option value="reviewFirst">{t("mixReviewFirst")}</option></Select></Field>
         </Section>
-        <Card className="flex items-center justify-between gap-3 p-4">
+        <Card className="sticky bottom-3 flex items-center justify-between gap-3 bg-elevated/90 p-3 pl-4 shadow-pop backdrop-blur-xl">
           <Toggle checked={applyChildren} onChange={setApplyChildren} label={t("applyToChildren")} />
           <Button variant="primary" loading={busy} onClick={save}><Save className="h-4 w-4" />{t("save")}</Button>
         </Card>

@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { Search, ChevronUp, ChevronDown, ChevronRight, HelpCircle, Flag, PauseCircle, PlayCircle, FolderInput, TagIcon, Tags, RotateCcw, Trash2, X, GripVertical } from "lucide-react";
 import { useApp } from "@/components/providers";
 import { api } from "@/lib/api";
-import { Badge, Button, Card, Empty, Input, Modal, PageHeader, Select, Spinner, cx } from "@/components/ui";
+import { Badge, Button, Card, Empty, Input, Modal, PageHeader, Pill, Segmented, Select, Spinner, cx } from "@/components/ui";
 import { DeckPicker } from "@/components/DeckPicker";
 import type { BrowseRowDTO, DeckDTO } from "@/lib/types";
 
@@ -75,8 +75,8 @@ export default function BrowsePage() {
   };
 
   const manual = sort === "manual";
-  const stateBadge = (r: BrowseRowDTO) => r.suspended ? <Badge tone="hard">{t("suspended")}</Badge> : r.buried ? <Badge>{t("buried")}</Badge> :
-    r.state === "new" ? <Badge tone="primary">{t("stNew")}</Badge> : r.state === "review" ? <Badge tone="easy">{t("stReview")}</Badge> : <Badge tone="again">{r.state === "learning" ? t("stLearning") : t("stRelearning")}</Badge>;
+  const stateBadge = (r: BrowseRowDTO) => r.suspended ? <Pill tone="amber" dot>{t("suspended")}</Pill> : r.buried ? <Pill dot>{t("buried")}</Pill> :
+    r.state === "new" ? <Pill tone="sky" dot>{t("stNew")}</Pill> : r.state === "review" ? <Pill tone="emerald" dot>{t("stReview")}</Pill> : <Pill tone="rose" dot>{r.state === "learning" ? t("stLearning") : t("stRelearning")}</Pill>;
   const dueText = (r: BrowseRowDTO) => r.state === "new" ? "—" : new Date(r.due).toLocaleDateString(locale === "zh" ? "zh-CN" : "en-US", { month: "short", day: "numeric" });
   const allChecked = list.length > 0 && list.every((r) => sel.has(key(r)));
 
@@ -84,26 +84,24 @@ export default function BrowsePage() {
     <div>
       <PageHeader title={t("browse")} subtitle={rows ? t("results", { n: list.length }) : undefined} />
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <form className="relative min-w-[240px] flex-1" onSubmit={(e) => { e.preventDefault(); setApplied(q); setSel(new Set()); }}>
+        <form className="relative min-w-[260px] flex-1" onSubmit={(e) => { e.preventDefault(); setApplied(q); setSel(new Set()); }}>
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("searchPh")} className="pl-9 pr-9" />
-          <button type="button" onClick={() => setHelp(true)} className="absolute right-2 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded text-faint hover:text-fg" title={t("syntaxHelp")}><HelpCircle className="h-4 w-4" /></button>
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("searchPh")} className="h-10 pl-9 pr-9 font-mono text-[12.5px] placeholder:font-sans placeholder:text-[13px]" />
+          <button type="button" onClick={() => setHelp(true)} className="absolute right-2 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-faint transition-colors hover:bg-muted hover:text-fg" title={t("syntaxHelp")}><HelpCircle className="h-4 w-4" /></button>
         </form>
-        <Select value={sort} onChange={(e) => setSort(e.target.value)} title={t("sort")}>
+        <Select className="h-10" value={sort} onChange={(e) => setSort(e.target.value)} title={t("sort")}>
           <option value="manual">{t("sort")}: {t("sortManual")}</option><option value="created">{t("sortCreated")}</option><option value="due">{t("sortDue")}</option>
           <option value="sortField">{t("sortField")}</option><option value="interval">{t("sortInterval")}</option><option value="lapses">{t("sortLapses")}</option><option value="difficulty">{t("sortDifficulty")}</option>
         </Select>
-        <Select value={group} onChange={(e) => setGroup(e.target.value as Group)} title={t("groupBy")}>
+        <Select className="h-10" value={group} onChange={(e) => setGroup(e.target.value as Group)} title={t("groupBy")}>
           <option value="deck">{t("groupBy")}: {t("groupDeck")}</option><option value="tag">{t("groupTag")}</option><option value="type">{t("groupType")}</option><option value="none">{t("groupNone")}</option>
         </Select>
-        <div className="inline-flex rounded-lg border border-border bg-surface p-0.5">
-          {(["notes", "cards"] as const).map((m) => <button key={m} onClick={() => { setMode(m); setSel(new Set()); }} className={cx("h-8 rounded-md px-3 text-sm", mode === m ? "bg-muted font-medium text-fg" : "text-sub")}>{m === "notes" ? t("notesMode") : t("cardsMode")}</button>)}
-        </div>
+        <Segmented className="h-10 items-center" value={mode} onChange={(m) => { setMode(m); setSel(new Set()); }} options={[{ value: "notes", label: t("notesMode") }, { value: "cards", label: t("cardsMode") }]} />
       </div>
 
       {sel.size > 0 && (
-        <div className="sticky top-14 z-10 mb-3 flex flex-wrap items-center gap-1.5 rounded-xl border border-primary/30 bg-surface px-3 py-2 shadow-pop lg:top-2">
-          <span className="mr-2 text-sm font-medium">{t("selected", { n: sel.size })}</span>
+        <div className="sticky top-16 z-10 mb-3 flex animate-scale-in flex-wrap items-center gap-1 rounded-xl border border-border bg-elevated/95 px-2 py-1.5 shadow-pop backdrop-blur-xl lg:top-3">
+          <span className="mr-2 inline-flex items-center gap-2 pl-1.5 text-[13px] font-medium"><span className="h-2 w-2 rounded-full bg-primary" />{t("selected", { n: sel.size })}</span>
           <Button size="sm" variant="ghost" onClick={() => { setMoveDeck(null); setMoveOpen(true); }}><FolderInput className="h-3.5 w-3.5" />{t("moveTo")}</Button>
           <Button size="sm" variant="ghost" onClick={() => { const v = prompt(t("addTagsQ")); if (v) bulk("addTags", { tags: v.split(/\s+/) }); }}><TagIcon className="h-3.5 w-3.5" />+{t("tags")}</Button>
           <Button size="sm" variant="ghost" onClick={() => { const v = prompt(t("removeTagsQ")); if (v) bulk("removeTags", { tags: v.split(/\s+/) }); }}><Tags className="h-3.5 w-3.5" />−{t("tags")}</Button>
@@ -111,25 +109,25 @@ export default function BrowsePage() {
           <Button size="sm" variant="ghost" onClick={() => bulk("unsuspend")}><PlayCircle className="h-3.5 w-3.5" />{t("unsuspend")}</Button>
           <Button size="sm" variant="ghost" onClick={() => bulk("flag", { flag: 1 })}><Flag className="h-3.5 w-3.5" />{t("flag")}</Button>
           <Button size="sm" variant="ghost" onClick={() => bulk("reset")}><RotateCcw className="h-3.5 w-3.5" />{t("reset")}</Button>
-          <Button size="sm" variant="ghost" className="text-again" onClick={() => bulk("delete")}><Trash2 className="h-3.5 w-3.5" />{t("delete")}</Button>
+          <Button size="sm" variant="ghost" className="text-danger hover:bg-rose-500/10 hover:text-danger" onClick={() => bulk("delete")}><Trash2 className="h-3.5 w-3.5" />{t("delete")}</Button>
           <button onClick={() => setSel(new Set())} className="ml-auto inline-flex h-7 w-7 items-center justify-center rounded-md text-faint hover:bg-muted"><X className="h-4 w-4" /></button>
         </div>
       )}
 
-      {rows === null ? <div className="flex justify-center py-20"><Spinner /></div> : list.length === 0 ? <Empty icon={<Search className="h-8 w-8" />} title="—" /> : (
+      {rows === null ? <div className="flex justify-center py-20"><Spinner /></div> : list.length === 0 ? <Empty icon={<Search />} title="—" /> : (
         <Card className="overflow-hidden">
           <div className="overflow-x-auto scrollbar-thin">
-            <table className="w-full min-w-[720px] text-left text-sm">
-              <thead className="border-b border-border bg-muted/40 text-xs text-faint">
+            <table className="w-full min-w-[760px] text-left text-[13.5px]">
+              <thead className="border-b border-border bg-subtle/80 text-[11px] uppercase tracking-[0.04em] text-faint">
                 <tr>
                   <th className="w-10 px-3 py-2"><input type="checkbox" className="accent-primary" checked={allChecked} onChange={() => setSel(allChecked ? new Set() : new Set(list.map(key)))} /></th>
                   {manual && <th className="w-14" />}
-                  <th className="px-2 py-2 font-medium">{t("colQuestion")}</th>
-                  <th className="px-2 py-2 font-medium">{t("colDeck")}</th>
-                  <th className="px-2 py-2 font-medium">{t("colType")}</th>
-                  <th className="px-2 py-2 font-medium">{t("colDueAt")}</th>
-                  <th className="px-2 py-2 text-right font-medium">{t("colIvl")}</th>
-                  <th className="px-2 py-2 font-medium">{t("colTags")}</th>
+                  <th className="px-2 py-2.5 font-medium">{t("colQuestion")}</th>
+                  <th className="px-2 py-2.5 font-medium">{t("colDeck")}</th>
+                  <th className="px-2 py-2.5 font-medium">{t("colType")}</th>
+                  <th className="px-2 py-2.5 font-medium">{t("colDueAt")}</th>
+                  <th className="px-2 py-2.5 text-right font-medium">{t("colIvl")}</th>
+                  <th className="px-2 py-2.5 font-medium">{t("colTags")}</th>
                   <th className="px-3 py-2" />
                 </tr>
               </thead>
@@ -138,10 +136,10 @@ export default function BrowsePage() {
                   const isClosed = closed.has(g);
                   return [
                     group !== "none" && (
-                      <tr key={`g-${g}`} className="border-b border-border bg-bg/60">
+                      <tr key={`g-${g}`} className="border-b border-border bg-subtle/60">
                         <td colSpan={manual ? 9 : 8} className="px-3 py-1.5">
-                          <button onClick={() => { const n = new Set(closed); if (n.has(g)) n.delete(g); else n.add(g); setClosed(n); }} className="inline-flex items-center gap-1.5 text-xs font-semibold text-sub">
-                            <ChevronRight className={cx("h-3.5 w-3.5 transition-transform", !isClosed && "rotate-90")} />{g}<span className="font-normal text-faint">{items.length}</span>
+                          <button onClick={() => { const n = new Set(closed); if (n.has(g)) n.delete(g); else n.add(g); setClosed(n); }} className="inline-flex items-center gap-1.5 text-xs font-semibold text-fg/80 hover:text-fg">
+                            <ChevronRight className={cx("h-3.5 w-3.5 transition-transform", !isClosed && "rotate-90")} />{g}<span className="num rounded-full bg-muted px-1.5 text-[10.5px] font-normal text-faint">{items.length}</span>
                           </button>
                         </td>
                       </tr>
@@ -150,7 +148,7 @@ export default function BrowsePage() {
                       const deckItems = items.filter((x) => x.deckId === r.deckId);
                       const idx = deckItems.findIndex((x) => x.noteId === r.noteId);
                       return (
-                        <tr key={`${g}-${key(r)}`} className={cx("group border-b border-border last:border-0 hover:bg-muted/40", sel.has(key(r)) && "bg-primary/5", dragNote === r.noteId && "opacity-40")}
+                        <tr key={`${g}-${key(r)}`} className={cx("group h-11 border-b border-border/70 transition-colors last:border-0 hover:bg-subtle", sel.has(key(r)) && "bg-primary/[0.06] hover:bg-primary/[0.08]", dragNote === r.noteId && "opacity-40")}
                           draggable={manual && mode === "notes"}
                           onDragStart={() => setDragNote(r.noteId)} onDragEnd={() => setDragNote(null)}
                           onDragOver={(e) => { if (dragNote && manual) e.preventDefault(); }}
@@ -166,13 +164,13 @@ export default function BrowsePage() {
                             </td>
                           )}
                           <td className="max-w-[340px] cursor-pointer px-2 py-2" onClick={() => router.push(`/notes/${r.noteId}`)}>
-                            <div className="truncate font-medium text-fg">{r.sortField || "—"}</div>
+                            <div className="truncate font-medium text-fg transition-colors group-hover:text-primary">{r.sortField || "—"}</div>
                             {mode === "cards" && <div className="text-xs text-faint">#{r.type === "cloze" ? `c${r.ord}` : r.ord + 1}</div>}
                           </td>
                           <td className="max-w-[200px] truncate px-2 py-2 text-sub" title={r.deckPath}>{r.deckPath}</td>
                           <td className="whitespace-nowrap px-2 py-2 text-sub">{t(`t_${r.type}`)}</td>
-                          <td className="whitespace-nowrap px-2 py-2 text-sub">{dueText(r)}</td>
-                          <td className="whitespace-nowrap px-2 py-2 text-right font-mono text-xs text-sub">{r.state === "review" ? `${Math.round(r.interval)}d` : "—"}</td>
+                          <td className="num whitespace-nowrap px-2 py-2 text-[12px] text-sub">{dueText(r)}</td>
+                          <td className="num whitespace-nowrap px-2 py-2 text-right text-[12px] text-sub">{r.state === "review" ? `${Math.round(r.interval)}d` : "—"}</td>
                           <td className="max-w-[160px] px-2 py-2"><div className="flex gap-1 overflow-hidden">{r.tags.slice(0, 3).map((x) => <Badge key={x} className="max-w-[110px] truncate">{x}</Badge>)}</div></td>
                           <td className="whitespace-nowrap px-3 py-2 text-right"><span className="inline-flex items-center gap-1">{r.flag > 0 && <Flag className="h-3.5 w-3.5 text-hard" />}{r.leech && <Badge tone="again">leech</Badge>}{stateBadge(r)}</span></td>
                         </tr>
