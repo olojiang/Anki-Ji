@@ -73,7 +73,7 @@ export const DICT = {
   exportJson: ["完整备份（JSON，含媒体）", "Full backup (JSON, with media)"], exportJsonDesc: ["牌组、题目、卡片、复习记录、标签、设置和图片音频，可在任何账号完整恢复", "Decks, notes, cards, review log, tags, settings and media — restorable into any account"],
   exportCsv: ["CSV", "CSV"], exportTsv: ["TSV", "TSV"], exportCsvDesc: ["题目表格（含 fields_json 列，可无损再导入）", "Notes table (with fields_json column for lossless re-import)"],
   importDesc: ["支持 Anki-ji 备份 .json、CSV/TSV/TXT、Anki .apkg（基础/填空题型）", "Accepts Anki-ji .json backups, CSV/TSV/TXT, Anki .apkg (Basic/Cloze)"],
-  chooseFile: ["选择文件", "Choose file"], defaultDeck: ["默认牌组（文件未指定牌组时）", "Default deck (when the file has none)"], startImport: ["开始导入", "Import"],
+  chooseFile: ["选择文件", "Choose file"], includeMedia: ["包含图片/音频", "Include media"], defaultDeck: ["默认牌组（文件未指定牌组时）", "Default deck (when the file has none)"], startImport: ["开始导入", "Import"],
   importing: ["正在导入…", "Importing…"], importDone: ["导入完成：{notes} 个题目、{cards} 张卡片，跳过重复 {skipped} 个", "Imported {notes} notes, {cards} cards; skipped {skipped} duplicates"],
   uploadingMedia: ["上传媒体 {i}/{n}", "Uploading media {i}/{n}"], parsing: ["解析文件…", "Parsing…"], detected: ["识别到 {notes} 个题目，{decks} 个牌组，{media} 个媒体文件", "Found {notes} notes, {decks} decks, {media} media files"],
   csvFormat: ["CSV 格式：首行可为表头（deck/牌组, type/题型, front/正面, back/背面, tags/标签）；无表头时按 正面,背面,标签", "CSV: optional header (deck, type, front, back, tags); otherwise front, back, tags"],

@@ -62,7 +62,7 @@ export default function IOPage() {
                   <div className="text-sm font-medium">{t("exportJson")}</div>
                   <p className="mt-1 text-xs leading-relaxed text-sub">{t("exportJsonDesc")}</p>
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                    <Toggle checked={withMedia} onChange={setWithMedia} label={<span className="text-xs text-sub">media</span>} />
+                    <Toggle checked={withMedia} onChange={setWithMedia} label={<span className="text-xs text-sub">{t("includeMedia")}</span>} />
                     <Button size="sm" variant="primary" loading={busy === "json"} onClick={exportJson}><Download className="h-3.5 w-3.5" />JSON</Button>
                   </div>
                 </div>
