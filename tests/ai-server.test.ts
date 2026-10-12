@@ -251,11 +251,22 @@ describe("AI settings + generation on real Postgres", () => {
       expect(await r3.json()).toMatchObject({ cards: [{ kind: "cloze", text: "{{c1::H2O}} is water" }] });
     });
 
-    it("extract refuses private URLs", async () => {
+    it("extract refuses private URLs (unless AI_ALLOW_PRIVATE_URLS=1 for self-hosting)", async () => {
       sessionToken = await signSession(a);
+      const prev = process.env.AI_ALLOW_PRIVATE_URLS;
+      process.env.AI_ALLOW_PRIVATE_URLS = "0";
       const r = await extractRoute.POST(req("/api/ai/extract", { method: "POST", body: { url: "http://127.0.0.1:4555/sql" } }), ctx);
+      process.env.AI_ALLOW_PRIVATE_URLS = prev;
+      if (prev === undefined) delete process.env.AI_ALLOW_PRIVATE_URLS;
       expect(r.status).toBe(400);
       expect(await r.json()).toEqual({ error: "url_not_allowed" });
+    });
+
+    it("extract returns readable text from a fetched page", async () => {
+      sessionToken = await signSession(a);
+      fetchSpy.mockResolvedValueOnce(new Response("<html><head><title>Cells</title></head><body><nav>menu</nav><article><p>Cells are the basic unit of life.</p></article></body></html>", { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }));
+      const r = await extractRoute.POST(req("/api/ai/extract", { method: "POST", body: { url: "https://example.com/cells" } }), ctx);
+      expect(await r.json()).toMatchObject({ title: "Cells", text: "Cells are the basic unit of life." });
     });
   });
 });

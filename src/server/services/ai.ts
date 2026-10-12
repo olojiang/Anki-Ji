@@ -105,13 +105,14 @@ export function textFromPdf(bytes: Uint8Array) {
 /** Fetch a public web page / PDF / text file and return readable text (SSRF-guarded, size + time capped). */
 export async function fetchUrlText(raw: string, deps: { fetchImpl?: typeof fetch } = {}): Promise<{ title: string; text: string; url: string }> {
   const f = deps.fetchImpl ?? fetch;
-  let url = (await assertPublicUrl(raw)).toString();
+  const allowPrivate = allowPrivateUrls();
+  let url = (await assertPublicUrl(raw, { allowPrivate })).toString();
   let res: Response | null = null;
   for (let hop = 0; hop < 4; hop++) {
     try {
       res = await f(url, { redirect: "manual", signal: AbortSignal.timeout(15000), headers: { "User-Agent": "Mozilla/5.0 (compatible; Anki-ji/1.0; +https://anki-ji.vercel.app)", Accept: "text/html,application/xhtml+xml,text/plain,application/pdf;q=0.9,*/*;q=0.5" } });
     } catch { throw bad("url_unreachable"); }
-    if (res.status >= 300 && res.status < 400 && res.headers.get("location")) { url = (await assertPublicUrl(new URL(res.headers.get("location")!, url).toString())).toString(); continue; }
+    if (res.status >= 300 && res.status < 400 && res.headers.get("location")) { url = (await assertPublicUrl(new URL(res.headers.get("location")!, url).toString(), { allowPrivate })).toString(); continue; }
     break;
   }
   if (!res || !res.ok) throw bad(res && (res.status === 401 || res.status === 403) ? "url_forbidden" : "url_fetch_failed");
