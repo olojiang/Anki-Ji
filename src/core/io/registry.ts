@@ -16,12 +16,8 @@ import { parseMochi } from "./mochi";
 import { smartPaste } from "./smartpaste";
 import { basename, stripExt } from "./text";
 
-export type ImportFormat = "backup" | "apkg" | "csv" | "xlsx" | "markdown" | "obsidian" | "mochi" | "remnote" | "quizlet" | "supermemo" | "supermemo-xml" | "mnemosyne" | "smart";
-export const PASTE_FORMATS = ["smart", "quizlet", "supermemo", "markdown", "remnote", "csv"] as const;
-export type PasteFormat = (typeof PASTE_FORMATS)[number];
-export const FILE_ACCEPT = ".json,.csv,.tsv,.txt,.apkg,.colpkg,.xlsx,.xls,.ods,.md,.markdown,.zip,.mochi,.xml,.cards";
-/** Formats whose deck structure comes from the file itself (the "default deck" field does not apply). */
-export const SELF_DECKED: ImportFormat[] = ["backup", "apkg", "mochi"];
+import type { ImportFormat, PasteFormat } from "./formats";
+export { PASTE_FORMATS, FILE_ACCEPT, SELF_DECKED, type ImportFormat, type PasteFormat } from "./formats";
 
 export interface ImportOptions {
   defaultDeck: string;

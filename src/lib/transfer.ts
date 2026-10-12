@@ -1,8 +1,9 @@
 "use client";
 import { api, uploadFile } from "./api";
-import { chunk, parseBackup, rewriteBackupMedia, type Backup } from "@/core/io/backup";
+import { chunk, rewriteBackupMedia, type Backup } from "@/core/io/backup";
 import { base64ToBytes, bytesToBase64, mimeFromName } from "@/core/io/base64";
-import { detectDelimiter, flatToBackup, parseDelimited, rowsToNotes } from "@/core/io/csv";
+import { mediaNeededFor, previewImport } from "@/core/io/draft";
+import type { ImportOptions, ParsedImport, PasteFormat } from "@/core/io/registry";
 
 export type Progress = (msg: { key: string; vars?: Record<string, string | number> }) => void;
 
@@ -22,26 +23,54 @@ export async function buildFullBackup(withMedia: boolean, progress: Progress): P
   return b;
 }
 
-/** Parse any supported file into the common backup shape. */
+const loadSqlJs = async () => {
+  const { default: initSqlJs } = await import("sql.js");
+  return initSqlJs({ locateFile: () => "/sql-wasm.wasm" });
+};
+
+/** Parse any supported file (format detected by extension + content) into the common backup shape + preview. */
+export async function fileToImport(file: File, opts: Omit<ImportOptions, "loadSqlJs">): Promise<ParsedImport> {
+  const { parseImportFile } = await import("@/core/io/registry");
+  return parseImportFile(file.name, new Uint8Array(await file.arrayBuffer()), { ...opts, loadSqlJs });
+}
+
+/** Parse pasted text with a paste preset. */
+export async function textToImport(format: PasteFormat, text: string, opts: Omit<ImportOptions, "loadSqlJs">): Promise<ParsedImport> {
+  const { parseImportText } = await import("@/core/io/registry");
+  return parseImportText(format, text, opts);
+}
+
+/** Back-compat wrapper. */
 export async function fileToBackup(file: File, defaultDeck: string): Promise<{ backup: Backup; errors: number }> {
-  const name = file.name.toLowerCase();
-  if (name.endsWith(".apkg") || name.endsWith(".colpkg")) {
-    const [{ default: initSqlJs }, { readApkg, apkgToBackup }] = await Promise.all([import("sql.js"), import("@/core/io/apkg")]);
-    const SQL = await initSqlJs({ locateFile: () => "/sql-wasm.wasm" });
-    const col = await readApkg(new Uint8Array(await file.arrayBuffer()), SQL);
-    return { backup: apkgToBackup(col), errors: 0 };
+  const p = await fileToImport(file, { defaultDeck });
+  return { backup: p.backup, errors: p.errors.length };
+}
+
+/** Which of the backup's notes the user already has (server-side, chunked). */
+export async function existingGuids(b: Backup): Promise<Set<string>> {
+  const out = new Set<string>();
+  for (const part of chunk(b.notes.map((n) => n.guid).filter(Boolean), 5000)) {
+    const r = await api<{ existing: string[] }>("/api/import/guids", { body: { guids: part } });
+    r.existing.forEach((g) => out.add(g));
   }
-  const text = await file.text();
-  if (name.endsWith(".json")) return { backup: parseBackup(text), errors: 0 };
-  const delim = name.endsWith(".tsv") ? "\t" : name.endsWith(".csv") ? (detectDelimiter(text) === ";" ? ";" : ",") : detectDelimiter(text);
-  const { notes, errors } = rowsToNotes(parseDelimited(text, delim), { defaultDeck });
-  return { backup: flatToBackup(notes), errors: errors.length };
+  return out;
+}
+
+/** Recompute the preview including how many notes are already in the collection. */
+export async function withExisting(p: ParsedImport): Promise<ParsedImport> {
+  try {
+    const existing = await existingGuids(p.backup);
+    return { ...p, preview: previewImport(p.backup, { format: p.format, duplicates: p.duplicates, errors: p.errors, warnings: p.warnings, existingGuids: existing }) };
+  } catch { return p; }
 }
 
 /** Upload media → rewrite URLs → create decks → import notes in chunks. */
 export async function importBackup(b: Backup, progress: Progress) {
   const urlMap: Record<string, string> = {};
-  const withData = b.media.filter((m) => m.data);
+  // skip media that only already-imported notes use (re-import does not upload twice)
+  let existing = new Set<string>();
+  try { existing = await existingGuids(b); } catch { /* older server: upload everything */ }
+  const withData = mediaNeededFor(b, existing).filter((m) => m.data);
   for (const [i, m] of withData.entries()) {
     progress({ key: "uploadingMedia", vars: { i: i + 1, n: withData.length } });
     try {

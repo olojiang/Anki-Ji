@@ -48,7 +48,7 @@ describe("ImportDraft → backup (shared normalized pipeline)", () => {
     for (let i = 0; i < 2; i++) {
       const { backup } = draftToBackup(sampleDraft());
       const deckMap = await importDecks(sink, backup.decks, db.decks.map((d) => ({ id: d.id as number, parentId: (d.parentId as number) ?? null, name: d.name as string })));
-      const notes = nestNotes(backup).map((n) => ({ ...n, cards: cardOrdinals(n.type, n.fields).map((ord) => ({ ...({} as never), ord, revlog: [] })) }));
+      const notes = nestNotes(backup).map((n) => ({ ...n, cards: cardOrdinals(n.type, n.fields).map((ord) => ({ ord, revlog: [] })) }));
       const res = await importNotes(sink, notes as never, deckMap);
       expect(res.skipped).toBe(i === 0 ? 0 : 3);
     }

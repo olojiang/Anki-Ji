@@ -4,10 +4,10 @@ import JSZip from "jszip";
 import { parseXml, childText } from "@/core/io/xml";
 import { parseSuperMemoXml } from "@/core/io/supermemo";
 import { parseMnemosyneXml, parseMnemosyneCards } from "@/core/io/mnemosyne";
-import { mediaRef } from "@/core/io/draft";
+import { mediaRef, type ImportDraft } from "@/core/io/draft";
 
 const fx = (n: string) => readFileSync(new URL(`./fixtures/import/${n}`, import.meta.url), "utf8");
-const rows = (d: { notes: { deckPath: string; type: string; fields: Record<string, unknown>; tags: string[] }[] }) =>
+const rows = (d: ImportDraft) =>
   d.notes.map((n) => [n.deckPath, n.type, n.fields.front ?? n.fields.text, n.fields.back ?? n.fields.extra, n.tags]);
 
 describe("XML reader", () => {

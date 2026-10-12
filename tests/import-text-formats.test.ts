@@ -4,10 +4,10 @@ import { parseRemNote } from "@/core/io/remnote";
 import { parseQuizlet } from "@/core/io/quizlet";
 import { parseSuperMemoText } from "@/core/io/supermemo";
 import { smartPaste } from "@/core/io/smartpaste";
-import { draftToBackup, previewImport } from "@/core/io/draft";
+import { draftToBackup, previewImport, type ImportDraft } from "@/core/io/draft";
 
 const fx = (n: string) => readFileSync(new URL(`./fixtures/import/${n}`, import.meta.url), "utf8");
-const sides = (d: { notes: { type: string; deckPath: string; fields: Record<string, unknown> }[] }) =>
+const sides = (d: ImportDraft) =>
   d.notes.map((n) => [n.deckPath, n.type, n.fields.front ?? n.fields.text, n.fields.back ?? n.fields.extra]);
 
 describe("RemNote export", () => {
