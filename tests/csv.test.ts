@@ -46,3 +46,29 @@ describe("rows ↔ notes", () => {
     expect(back.notes).toEqual(notes);
   });
 });
+
+import { flatToBackup } from "@/core/io/csv";
+import { compareTyped } from "@/core/typed";
+describe("flat notes → backup (shared import pipeline)", () => {
+  it("creates the deck tree and one note per row with unique guids", () => {
+    const b = flatToBackup([
+      { deckPath: "A::B", type: "basic", fields: { front: "1", back: "2" }, tags: [] },
+      { deckPath: "a::b", type: "basic", fields: { front: "3", back: "4" }, tags: ["t"] },
+      { deckPath: "C", type: "cloze", fields: { text: "{{c1::x}}" }, tags: [] },
+    ]);
+    expect(b.decks.map((d) => d.name)).toEqual(["A", "B", "C"]);
+    expect(b.notes[0].deckId).toBe(b.notes[1].deckId);
+    expect(new Set(b.notes.map((n) => n.guid)).size).toBe(3);
+    expect(b.cards).toEqual([]);
+  });
+});
+describe("typed answer comparison", () => {
+  it("marks matching, missing and wrong characters", () => {
+    expect(compareTyped("hello", "hello")).toEqual({ correct: true, segments: [{ text: "hello", kind: "ok" }] });
+    const r = compareTyped("helo", "hello");
+    expect(r.correct).toBe(false);
+    expect(r.segments.map((s) => s.kind)).toContain("missing");
+    expect(compareTyped(" Hello ", "hello").correct).toBe(true); // trims, case-insensitive
+    expect(compareTyped("hxllo", "hello").segments.some((s) => s.kind === "wrong")).toBe(true);
+  });
+});
