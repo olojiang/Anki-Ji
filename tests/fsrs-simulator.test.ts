@@ -91,9 +91,10 @@ describe("workload simulator", () => {
   });
   it("is fast enough to sweep a large collection on request", () => {
     const cards = Array.from({ length: 20000 }, (_, i) => ({ s: 1 + (i % 200), d: 3 + (i % 6), lastDay: -(i % 30), dueDay: (i % 60) - 5 }));
-    const t0 = Date.now();
+    const c0 = process.cpuUsage(); // CPU time, not wall clock: robust on a busy CI box
     const sw = sweepRetention({ ...base, cards, newCards: 5000 });
-    expect(Date.now() - t0).toBeLessThan(4000);
+    const c = process.cpuUsage(c0);
+    expect((c.user + c.system) / 1000).toBeLessThan(4000); // ~0.8 s on an idle machine
     expect(sw.points[0].memorizedEnd).toBeGreaterThan(1000); // scaled back to the real collection size
   });
 });

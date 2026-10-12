@@ -3,7 +3,6 @@ import { listDecks, NotFoundError } from "../repo/decks";
 import { userContext } from "./context";
 import { descendantIds } from "@/core/tree";
 import { dayIndex } from "@/core/time";
-import { capDuration } from "@/core/response-time";
 import { sweepRetention, DEFAULT_COSTS, DEFAULT_FIRST_RATING_PROB, DEFAULT_REVIEW_RATING_PROB, type SimCard } from "@/core/simulator";
 
 const toDate = (v: unknown) => new Date(String(v instanceof Date ? v.toISOString() : v));

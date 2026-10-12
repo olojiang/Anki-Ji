@@ -6,6 +6,7 @@ import { User, Palette, CalendarClock, KeyRound, AlertTriangle } from "lucide-re
 import { Button, Card, CardHeader, Field, IconChip, Input, Modal, PageHeader, Select, Spinner } from "@/components/ui";
 import { ThemeGrid } from "@/components/ThemePicker";
 import type { Me } from "@/components/Shell";
+import { StudyPrefsCards } from "@/components/settings/StudyPrefsCards";
 
 export default function SettingsPage() {
   const { t, err, toast, setLocale } = useApp();
@@ -51,6 +52,7 @@ export default function SettingsPage() {
           <Field label={t("rollover")} hint={t("rolloverHelp")}><Select className="w-full" value={me.settings.rolloverHour} onChange={(e) => save({ rolloverHour: Number(e.target.value) })}>{Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{String(h).padStart(2, "0")}:00</option>)}</Select></Field>
         </div>
       </Card>
+      <StudyPrefsCards timezone={me.settings.timezone} />
       <Card className="space-y-5 p-5">
         <CardHeader icon={<IconChip tone="orange"><KeyRound /></IconChip>} title={t("changePassword")} />
         <div className="grid gap-3 sm:grid-cols-2">

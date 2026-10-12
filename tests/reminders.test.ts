@@ -49,3 +49,15 @@ describe("who gets a reminder", () => {
     expect(normalizePrefs({ goalType: "bogus" }).goalType).toBe("cards");
   });
 });
+
+import { cronAuthorized } from "@/server/cron";
+describe("cron endpoint protection", () => {
+  const secret = "s3cr3t-s3cr3t-s3cr3t";
+  it("requires the exact bearer secret and a configured secret", () => {
+    expect(cronAuthorized(`Bearer ${secret}`, secret)).toBe(true);
+    expect(cronAuthorized(`Bearer ${secret}x`, secret)).toBe(false);
+    expect(cronAuthorized(null, secret)).toBe(false);
+    expect(cronAuthorized("Bearer ", "")).toBe(false);
+    expect(cronAuthorized("Bearer short", "short")).toBe(false);
+  });
+});

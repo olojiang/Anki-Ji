@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import { Button, Card, Field, Input, PageHeader, Select, Spinner, Toggle, cx } from "@/components/ui";
 import type { DeckDTO } from "@/lib/types";
 import type { DeckConfig } from "@/core/types";
+import { FsrsLab } from "@/components/fsrs/FsrsLab";
 
 const fmtSteps = (s: number[]) => s.map((m) => (m >= 1440 && m % 1440 === 0 ? `${m / 1440}d` : m >= 60 && m % 60 === 0 ? `${m / 60}h` : `${m}m`)).join(" ");
 const parseSteps = (s: string) => s.split(/[\s,]+/).filter(Boolean).map((x) => {
@@ -116,6 +117,7 @@ export default function DeckOptionsPage({ params }: { params: Promise<{ id: stri
                 {c.fsrsWeights && <Button size="sm" variant="ghost" onClick={() => set({ fsrsWeights: null })}><RotateCcw className="h-3.5 w-3.5" />{t("resetWeights")}</Button>}
               </div>
             </div>
+            <FsrsLab deckId={id} config={c} onChange={set} />
           </Section>
         )}
         {c.algorithm === "sm2" && (

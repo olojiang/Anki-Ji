@@ -9,6 +9,7 @@ import { Button, Card, Empty, Field, IconChip, Input, Modal, PageHeader, Pill, P
 import { buildTree, type TreeNode } from "@/core/tree";
 import type { Counts, DeckDTO } from "@/lib/types";
 import { DeckDashboard, type DashStats } from "@/components/DeckDashboard";
+import { DailyGoalCard } from "@/components/DailyGoalCard";
 
 type Node = TreeNode<DeckDTO>;
 type DropZone = "before" | "after" | "inside";
@@ -166,6 +167,7 @@ export default function DecksPage() {
       />
       <div className={cx(decks && decks.length > 0 && "xl:grid xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start xl:gap-6 2xl:grid-cols-[minmax(0,1fr)_400px] 2xl:gap-8")}>
       <div className="min-w-0">
+      {decks && decks.length > 0 && <DailyGoalCard />}
       {decks && decks.length > 0 && (
         <div className="mb-6 grid grid-cols-3 gap-2 sm:gap-3">
           <Card className="relative overflow-hidden p-3 sm:p-4">

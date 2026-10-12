@@ -7,6 +7,7 @@ import { useApp } from "@/components/providers";
 import { api } from "@/lib/api";
 import { Button, Card, Spinner, Kbd, Pill, ProgressBar, IconChip, cx } from "@/components/ui";
 import { CardView, type RenderedCardDTO } from "@/components/CardView";
+import { pingAutoOptimize } from "@/lib/push-client";
 
 interface StudyCard extends RenderedCardDTO { cardId: number; noteId: number; type: string; state: string; intervals: Record<string, string>; flag: number; leech: boolean; tags: string[]; retrievability: number | null; stability: number; difficulty: number; reps: number; lapses: number }
 interface StudyState { deck: { id: number; name: string; filtered: boolean }; counts: { new: number; learning: number; review: number }; card: StudyCard | null; nextLearningAt: string | null }
@@ -39,6 +40,7 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
     setSt(s); setRevealed(false); setTyped(""); setPicked([]); shownAt.current = Date.now();
   }, []);
   useEffect(() => { api<StudyState>(`/api/study/${deckId}`).then(apply).catch(err); }, [deckId, apply, err]);
+  useEffect(() => { if (st && !st.card && done > 0) pingAutoOptimize(); }, [st, done]); // session finished → lazy FSRS auto-optimize check
   // refresh when learning cards become due
   useEffect(() => {
     if (!st || st.card || !st.nextLearningAt) return;
