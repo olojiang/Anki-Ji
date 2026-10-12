@@ -51,7 +51,8 @@ export function isStockAnkiModel(m: AnkiModel): boolean {
 }
 
 export function ankiModelToNoteType(m: AnkiModel): NoteTypeRecord {
-  const fields = (m.fields ?? m.fieldNames.map((name) => ({ name }))).map((f, i) => ({
+  const src: NonNullable<AnkiModel["fields"]> = m.fields ?? m.fieldNames.map((name) => ({ name }));
+  const fields = src.map((f, i) => ({
     id: `f${i}`, name: f.name,
     ...(f.font ? { font: f.font } : {}), ...(f.size ? { size: f.size } : {}), ...(f.rtl ? { rtl: true } : {}),
   }));
