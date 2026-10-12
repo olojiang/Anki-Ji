@@ -65,7 +65,7 @@ export function Providers({ children, initialLocale = "zh" }: { children: ReactN
   }, [locale, toast]);
 
   const toastBox = useRef<HTMLDivElement>(null);
-  useFlip(toastBox, toasts.map((x) => x.id).join(",")); // remaining toasts glide into place
+  useFlip(toastBox, toasts.map((x) => x.id).join(","), true); // remaining toasts glide into place
   const value = useMemo(() => ({ locale, setLocale, theme, setTheme, t, toast, err }), [locale, setLocale, theme, setTheme, t, toast, err]);
   return (
     <C.Provider value={value}>

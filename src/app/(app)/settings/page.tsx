@@ -3,8 +3,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/components/providers";
 import { api } from "@/lib/api";
 import { User, Palette, CalendarClock, KeyRound, AlertTriangle } from "lucide-react";
-import { Button, Card, CardHeader, Field, IconChip, Input, Modal, PageHeader, Select, Spinner } from "@/components/ui";
+import { Button, Card, CardHeader, Field, IconChip, Input, Modal, PageHeader, Select, SkeletonCards } from "@/components/ui";
 import { ThemeGrid } from "@/components/ThemePicker";
+import { MotionSetting } from "@/components/MotionSetting";
 import type { Me } from "@/components/Shell";
 
 export default function SettingsPage() {
@@ -15,7 +16,7 @@ export default function SettingsPage() {
   const [delPw, setDelPw] = useState("");
   useEffect(() => { api<{ user: Me }>("/api/auth/me").then((r) => setMe(r.user)).catch(err); }, [err]);
   const zones = useMemo(() => { try { return (Intl as unknown as { supportedValuesOf: (k: string) => string[] }).supportedValuesOf("timeZone"); } catch { return ["Asia/Shanghai", "UTC"]; } }, []);
-  if (!me) return <div className="flex justify-center py-20"><Spinner /></div>;
+  if (!me) return <SkeletonCards count={2} chart={false} />;
   const save = async (patch: Partial<Me["settings"]> & { name?: string }) => {
     try {
       const { name, ...settings } = patch;
@@ -43,6 +44,7 @@ export default function SettingsPage() {
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label={t("language")}><Select className="w-full" value={me.settings.locale} onChange={(e) => { const l = e.target.value as "zh" | "en"; setLocale(l); save({ locale: l }); }}><option value="zh">中文</option><option value="en">English</option></Select></Field>
         </div>
+        <MotionSetting />
       </Card>
       <Card className="space-y-5 p-5">
         <CardHeader icon={<IconChip tone="emerald"><CalendarClock /></IconChip>} title={t("studyDay")} />

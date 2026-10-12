@@ -17,15 +17,18 @@ export function useTransitionNav() {
 
 /**
  * <nav> whose children mark the current item with data-active="true"; an absolutely positioned
- * indicator (pill + accent bar) slides to it. `activeKey` = anything that changes when the active item does.
+ * pill (`indicatorClassName`, under the labels) and accent layer (`indicator` inside `barClassName`)
+ * slide to it. Only the accent layer carries a view-transition-name, so during a route View
+ * Transition it morphs on top without covering the labels. `activeKey` changes with the active item.
  */
-export function SlidingNav({ activeKey, className, indicatorClassName, indicator, axis = "y", children, ...rest }: { activeKey: unknown; className?: string; indicatorClassName?: string; indicator?: ReactNode; axis?: "y" | "both"; children: ReactNode } & React.HTMLAttributes<HTMLElement>) {
+export function SlidingNav({ activeKey, className, indicatorClassName, barClassName, indicator, axis = "y", children, ...rest }: { activeKey: unknown; className?: string; indicatorClassName?: string; barClassName?: string; indicator?: ReactNode; axis?: "y" | "both"; children: ReactNode } & React.HTMLAttributes<HTMLElement>) {
   const ref = useRef<HTMLElement>(null);
   const ind = useSlidingIndicator(ref, activeKey, axis);
   return (
     <nav ref={ref} className={cx("relative", className)} {...rest}>
       {children}
-      <span aria-hidden data-ready={ind.ready} style={ind.style} className={cx("m-indicator pointer-events-none absolute top-0 z-0 !mt-0", indicatorClassName)}>{indicator}</span>
+      <span aria-hidden data-ready={ind.ready} style={ind.style} className={cx("m-indicator pointer-events-none absolute top-0 z-0 !mt-0", indicatorClassName)} />
+      {indicator && <span aria-hidden data-ready={ind.ready} style={ind.style} className={cx("m-indicator pointer-events-none absolute top-0 z-0 !mt-0", barClassName)}>{indicator}</span>}
     </nav>
   );
 }

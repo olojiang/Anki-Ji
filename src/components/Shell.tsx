@@ -75,7 +75,7 @@ export function Shell({ children }: { children: ReactNode }) {
     <div className="flex h-full flex-col">
       <div className="flex h-16 items-center px-5"><Link href="/" className="focus-ring inline-flex h-11 items-center rounded-md"><Logo /></Link></div>
       <SlidingNav activeKey={path} className="flex-1 space-y-5 overflow-y-auto px-3 py-2"
-        indicatorClassName="vt-ind-side inset-x-3 rounded-lg bg-surface shadow-xs ring-1 ring-border"
+        indicatorClassName="inset-x-3 rounded-lg bg-surface shadow-xs ring-1 ring-border" barClassName="vt-ind-side inset-x-3"
         indicator={<span className="absolute -left-3 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-r-full bg-primary" />}>
         {groups.map((g, gi) => (
           <div key={gi} className="space-y-0.5">
@@ -115,7 +115,7 @@ export function Shell({ children }: { children: ReactNode }) {
     <div className="flex h-full flex-col items-center py-4">
       <Link href="/" className="focus-ring mb-4 rounded-lg" aria-label="Anki-ji"><LogoMark className="h-8 w-8" /></Link>
       <SlidingNav activeKey={path} axis="both" className="flex flex-1 flex-col items-center gap-1"
-        indicatorClassName="vt-ind-rail left-0 rounded-xl bg-surface shadow-xs ring-1 ring-border"
+        indicatorClassName="left-0 rounded-xl bg-surface shadow-xs ring-1 ring-border" barClassName="vt-ind-rail left-0"
         indicator={<span className="absolute -left-[14px] top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-primary" />}>
         {groups.map((g, gi) => (
           <div key={gi} className={cx("flex flex-col items-center gap-1", gi > 0 && "mt-3 border-t border-border pt-3")}>

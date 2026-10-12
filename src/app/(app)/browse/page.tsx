@@ -4,7 +4,8 @@ import { useRouter } from "next/navigation";
 import { Search, ChevronUp, ChevronDown, ChevronRight, HelpCircle, Flag, PauseCircle, PlayCircle, FolderInput, TagIcon, Tags, RotateCcw, Trash2, X, GripVertical } from "lucide-react";
 import { useApp } from "@/components/providers";
 import { api } from "@/lib/api";
-import { Badge, Button, Card, Empty, Input, Kbd, Modal, PageHeader, Pill, Segmented, Select, Spinner, cx } from "@/components/ui";
+import { Badge, Button, Card, Empty, Input, Kbd, Modal, PageHeader, Pill, Segmented, Select, SkeletonList, cx } from "@/components/ui";
+import { liftDragImage, useFlip } from "@/components/motion";
 import { DeckPicker } from "@/components/DeckPicker";
 import { BrowsePreview } from "@/components/BrowsePreview";
 import type { BrowseRowDTO, DeckDTO } from "@/lib/types";
@@ -37,6 +38,9 @@ export default function BrowsePage() {
   const [dragNote, setDragNote] = useState<number | null>(null);
   const [active, setActive] = useState<BrowseRowDTO | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  const tableBox = useRef<HTMLTableSectionElement>(null), mobileBox = useRef<HTMLDivElement>(null);
+  const flipSig = sort === "manual" && rows ? rows.map((r) => r.noteId).join(",") : "";
+  useFlip(tableBox, flipSig); useFlip(mobileBox, flipSig); // manual reorder glides instead of jumping
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName;
@@ -126,9 +130,9 @@ export default function BrowsePage() {
         </div>
       )}
 
-      {rows === null ? <div className="flex justify-center py-20"><Spinner /></div> : list.length === 0 ? <Empty icon={<Search />} title="—" /> : (
+      {rows === null ? <SkeletonList rows={8} /> : list.length === 0 ? <Empty icon={<Search />} title="—" /> : (
         <>
-        <div className="space-y-4 lg:hidden">
+        <div ref={mobileBox} className="space-y-4 lg:hidden">
           {groups.map(([g, items]) => (
             <section key={`m-${g}`}>
               {group !== "none" && (
@@ -142,7 +146,7 @@ export default function BrowsePage() {
                     const deckItems = items.filter((x) => x.deckId === r.deckId);
                     const idx = deckItems.findIndex((x) => x.noteId === r.noteId);
                     return (
-                      <div key={`m-${g}-${key(r)}`} className={cx("flex items-start gap-1 py-2 pr-3 transition-colors active:bg-subtle", sel.has(key(r)) && "bg-primary/[0.06]")}>
+                      <div key={`m-${g}-${key(r)}`} data-flip={`${g}-${key(r)}`} className={cx("flex items-start gap-1 py-2 pr-3 transition-colors active:bg-subtle", sel.has(key(r)) && "bg-primary/[0.06]")}>
                         <label className="flex h-11 w-11 shrink-0 items-center justify-center"><input type="checkbox" className="h-[18px] w-[18px]" checked={sel.has(key(r))} onChange={() => { const n = new Set(sel); if (n.has(key(r))) n.delete(key(r)); else n.add(key(r)); setSel(n); }} /></label>
                         <button className="min-w-0 flex-1 py-1.5 text-left" onClick={() => router.push(`/notes/${r.noteId}`)}>
                           <div className="line-clamp-2 break-words text-[15px] font-medium leading-snug text-fg">{r.sortField || "—"}{mode === "cards" && <span className="ml-1.5 text-xs font-normal text-faint">#{r.type === "cloze" ? `c${r.ord}` : r.ord + 1}</span>}</div>
@@ -187,7 +191,7 @@ export default function BrowsePage() {
                   <th className="w-28 px-3 py-2" />
                 </tr>
               </thead>
-              <tbody>
+              <tbody ref={tableBox}>
                 {groups.map(([g, items]) => {
                   const isClosed = closed.has(g);
                   return [
@@ -205,8 +209,8 @@ export default function BrowsePage() {
                       const idx = deckItems.findIndex((x) => x.noteId === r.noteId);
                       return (
                         <tr key={`${g}-${key(r)}`} className={cx("group h-11 border-b border-border/70 transition-colors last:border-0 hover:bg-subtle", sel.has(key(r)) && "bg-primary/[0.06] hover:bg-primary/[0.08]", active && key(active) === key(r) && "xl:bg-primary/[0.08] xl:shadow-[inset_3px_0_0_rgb(var(--primary))]", dragNote === r.noteId && "opacity-40")}
-                          draggable={manual && mode === "notes"}
-                          onDragStart={() => setDragNote(r.noteId)} onDragEnd={() => setDragNote(null)}
+                          draggable={manual && mode === "notes"} data-flip={`${g}-${key(r)}`}
+                          onDragStart={(e) => { liftDragImage(e, e.currentTarget); setDragNote(r.noteId); }} onDragEnd={() => setDragNote(null)}
                           onDragOver={(e) => { if (dragNote && manual) e.preventDefault(); }}
                           onDrop={(e) => { e.preventDefault(); if (dragNote && dragNote !== r.noteId) { const src = list.find((x) => x.noteId === dragNote); if (src && src.deckId === r.deckId) reorder(dragNote, idx); } setDragNote(null); }}>
                           <td className="px-3 py-2"><input type="checkbox" className="accent-primary" checked={sel.has(key(r))} onChange={() => { const n = new Set(sel); if (n.has(key(r))) n.delete(key(r)); else n.add(key(r)); setSel(n); }} /></td>

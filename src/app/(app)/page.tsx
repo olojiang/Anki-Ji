@@ -1,11 +1,12 @@
 "use client";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronRight, Plus, MoreHorizontal, Play, Settings2, Pencil, Trash2, FolderPlus, Filter, RefreshCw, Eraser, Flame, CheckCircle2, GripVertical, Layers, Sparkles } from "lucide-react";
 import { useApp } from "@/components/providers";
 import { api } from "@/lib/api";
-import { Button, Card, Empty, Field, IconChip, Input, Modal, PageHeader, Pill, ProgressRing, Select, Spinner, cx, type Tone } from "@/components/ui";
+import { Button, Card, Empty, Field, IconChip, Input, Modal, PageHeader, Pill, ProgressRing, Select, SkeletonList, cx, type Tone } from "@/components/ui";
+import { Collapse, CountUp, liftDragImage, useFlip } from "@/components/motion";
 import { buildTree, type TreeNode } from "@/core/tree";
 import type { Counts, DeckDTO } from "@/lib/types";
 import { DeckDashboard, type DashStats } from "@/components/DeckDashboard";
@@ -44,6 +45,8 @@ export default function DecksPage() {
   }, []);
 
   const tree = useMemo(() => buildTree(decks ?? []), [decks]);
+  const treeBox = useRef<HTMLDivElement>(null);
+  useFlip(treeBox, useMemo(() => { const ids: number[] = []; const walk = (ns: Node[]) => ns.forEach((n) => { ids.push(n.id); walk(n.children); }); walk(tree); return ids.join(","); }, [tree])); // smooth reflow after drag-and-drop
   const due = useMemo(() => tree.reduce((a, n) => { const c = counts[n.id]; return c ? { new: a.new + c.new, learning: a.learning + c.learning, review: a.review + c.review } : a; }, { new: 0, learning: 0, review: 0 }), [tree, counts]);
   const nextDeck = useMemo(() => { const n = tree.find((x) => { const c = counts[x.id]; return c && c.new + c.learning + c.review > 0; }); return n ? { id: n.id, name: n.name } : null; }, [tree, counts]);
   const toggle = (id: number) => {
@@ -94,8 +97,8 @@ export default function DecksPage() {
     return (
       <div key={n.id}>
         <div
-          draggable
-          onDragStart={(e) => { e.dataTransfer.effectAllowed = "move"; setDrag({ id: n.id, over: null, zone: null }); }}
+          draggable data-flip={n.id}
+          onDragStart={(e) => { e.dataTransfer.effectAllowed = "move"; liftDragImage(e, e.currentTarget); setDrag({ id: n.id, over: null, zone: null }); }}
           onDragEnd={() => setDrag(null)}
           onDragOver={(e) => {
             if (!drag) return;
@@ -108,12 +111,12 @@ export default function DecksPage() {
           onDrop={(e) => { e.preventDefault(); onDrop(n, drag?.zone ?? "inside"); }}
           className={cx(
             "group relative flex h-14 items-center gap-1.5 border-t sm:h-[52px] sm:gap-2 border-border/80 px-3 transition-colors duration-150 hover:bg-subtle",
-            drag?.id === n.id && "opacity-40",
+            drag?.id === n.id && "m-drag-source",
             isOver && drag?.zone === "inside" && "bg-primary/10 ring-1 ring-inset ring-primary/40",
           )}
         >
-          {isOver && drag?.zone === "before" && <div className="absolute inset-x-2 top-0 h-0.5 rounded bg-primary" />}
-          {isOver && drag?.zone === "after" && <div className="absolute inset-x-2 bottom-0 h-0.5 rounded bg-primary" />}
+          {isOver && drag?.zone === "before" && <div className="m-drop-line absolute inset-x-2 top-0 h-0.5 rounded bg-primary" />}
+          {isOver && drag?.zone === "after" && <div className="m-drop-line absolute inset-x-2 bottom-0 h-0.5 rounded bg-primary" />}
           <GripVertical className="hidden h-4 w-4 shrink-0 cursor-grab text-faint opacity-0 transition-opacity group-hover:opacity-100 sm:block" />
           <div style={{ width: depth * 22 }} className="hidden shrink-0 sm:block" />
           <div style={{ width: depth * 12 }} className="shrink-0 sm:hidden" />
@@ -136,7 +139,7 @@ export default function DecksPage() {
             <Link href={`/study/${n.id}`} className="hidden h-8 w-8 items-center justify-center rounded-lg text-faint transition-all hover:bg-primary/10 hover:text-primary group-hover:text-sub sm:inline-flex" title={t("study")}><Play className="h-4 w-4" /></Link>
             <button onClick={(e) => { e.stopPropagation(); setMenu(menu === n.id ? null : n.id); }} className="inline-flex h-11 w-10 items-center justify-center rounded-lg text-faint transition-colors hover:bg-muted hover:text-fg group-hover:text-sub sm:h-8 sm:w-8" aria-label={t("more")}><MoreHorizontal className="h-4 w-4" /></button>
             {menu === n.id && (
-              <div className="absolute right-0 top-9 z-20 w-52 origin-top-right animate-scale-in overflow-hidden rounded-xl border border-border bg-elevated p-1 shadow-pop" onClick={(e) => e.stopPropagation()}>
+              <div className="absolute right-0 top-9 z-20 w-52 origin-top-right animate-pop-in overflow-hidden rounded-xl border border-border bg-elevated p-1 shadow-pop" onClick={(e) => e.stopPropagation()}>
                 {!n.filtered && <MenuItem icon={FolderPlus} onClick={() => { setMenu(null); setName(""); setModal({ kind: "new", parentId: n.id }); }}>{t("newSubdeck")}</MenuItem>}
                 <MenuItem icon={Pencil} onClick={() => { setMenu(null); setName(n.name); setModal({ kind: "rename", deck: n }); }}>{t("rename")}</MenuItem>
                 <MenuItem icon={Settings2} onClick={() => router.push(`/decks/${n.id}`)}>{t("options")}</MenuItem>
@@ -149,7 +152,7 @@ export default function DecksPage() {
             )}
           </div>
         </div>
-        {hasKids && open && n.children.map((ch) => row(ch, depth + 1))}
+        {hasKids && <Collapse open={open}>{n.children.map((ch) => row(ch, depth + 1))}</Collapse>}
       </div>
     );
   };
@@ -167,12 +170,12 @@ export default function DecksPage() {
       <div className={cx(decks && decks.length > 0 && "xl:grid xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start xl:gap-6 2xl:grid-cols-[minmax(0,1fr)_400px] 2xl:gap-8")}>
       <div className="min-w-0">
       {decks && decks.length > 0 && (
-        <div className="mb-6 grid grid-cols-3 gap-2 sm:gap-3">
+        <div className="m-stagger mb-6 grid grid-cols-3 gap-2 sm:gap-3">
           <Card className="relative overflow-hidden p-3 sm:p-4">
             <div className="pointer-events-none absolute -right-10 -top-12 h-32 w-32 rounded-full bg-primary/10 blur-2xl" />
             <div className="flex items-center gap-2.5 truncate text-[12px] font-medium text-sub sm:text-[12.5px]"><IconChip tone="primary" size="sm" className="hidden sm:inline-flex"><Sparkles /></IconChip>{t("dueToday")}</div>
             <div className="mt-2 flex items-end justify-between gap-3 sm:mt-3">
-              <div className="num text-[24px] font-semibold leading-none text-fg sm:text-[30px]">{due.new + due.learning + due.review}</div>
+              <CountUp value={due.new + due.learning + due.review} className="num block text-[24px] font-semibold leading-none text-fg sm:text-[30px]" />
               <div className="hidden gap-1 lg:flex">
                 <Pill tone="sky" mono title={t("colNew")}>{due.new}</Pill>
                 <Pill tone="rose" mono title={t("colLearn")}>{due.learning}</Pill>
@@ -182,15 +185,15 @@ export default function DecksPage() {
           </Card>
           <Card className="p-3 sm:p-4">
             <div className="flex items-center gap-2.5 truncate text-[12px] font-medium text-sub sm:text-[12.5px]"><IconChip tone="emerald" size="sm" className="hidden sm:inline-flex"><CheckCircle2 /></IconChip>{t("reviewedToday")}</div>
-            <div className="mt-2 flex items-end gap-1.5 sm:mt-3"><span className="num text-[24px] font-semibold leading-none text-fg sm:text-[30px]">{stats?.today.reviews ?? "—"}</span><span className="pb-0.5 text-xs text-faint">{t("cardsUnit")}</span></div>
+            <div className="mt-2 flex items-end gap-1.5 sm:mt-3"><span className="num text-[24px] font-semibold leading-none text-fg sm:text-[30px]">{stats ? <CountUp value={stats.today.reviews} /> : "—"}</span><span className="pb-0.5 text-xs text-faint">{t("cardsUnit")}</span></div>
           </Card>
           <Card className="p-3 sm:p-4">
             <div className="flex items-center gap-2.5 truncate text-[12px] font-medium text-sub sm:text-[12.5px]"><IconChip tone="orange" size="sm" className="hidden sm:inline-flex"><Flame /></IconChip>{t("streak")}</div>
-            <div className="mt-2 flex items-end gap-1.5 sm:mt-3"><span className="num text-[24px] font-semibold leading-none text-fg sm:text-[30px]">{stats?.streak ?? "—"}</span><span className="pb-0.5 text-xs text-faint">{t("days")}</span></div>
+            <div className="mt-2 flex items-end gap-1.5 sm:mt-3"><span className="num text-[24px] font-semibold leading-none text-fg sm:text-[30px]">{stats ? <CountUp value={stats.streak} /> : "—"}</span><span className="pb-0.5 text-xs text-faint">{t("days")}</span></div>
           </Card>
         </div>
       )}
-      {decks === null ? <div className="flex justify-center py-20"><Spinner /></div> : decks.length === 0 ? (
+      {decks === null ? <SkeletonList rows={6} /> : decks.length === 0 ? (
         <Empty icon={<Layers />} title={t("noDecks")}><Button variant="primary" onClick={() => setModal({ kind: "new", parentId: null })}><Plus className="h-4 w-4" />{t("newDeck")}</Button></Empty>
       ) : (
         <Card className="overflow-visible">
@@ -199,7 +202,7 @@ export default function DecksPage() {
             <span className="flex text-center sm:gap-1"><span className="w-11 sm:w-14">{t("colNew")}</span><span className="w-11 sm:w-14">{t("colLearn")}</span><span className="w-11 sm:w-14">{t("colDue")}</span></span>
             <span className="w-8 sm:w-16" />
           </div>
-          <div className="[&>div:first-child>div:first-child]:border-t-0 [&>div:last-child>div:last-child]:rounded-b-2xl">{tree.map((n) => row(n, 0))}</div>
+          <div ref={treeBox} className="m-stagger [&>div:first-child>div:first-child]:border-t-0 [&>div:last-child>div:last-child]:rounded-b-2xl">{tree.map((n) => row(n, 0))}</div>
         </Card>
       )}
       {decks && decks.length > 1 && <p className="mt-3 hidden px-1 text-xs text-faint md:block">{t("dragHint")}</p>}

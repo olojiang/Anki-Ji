@@ -68,8 +68,8 @@ export function Field({ label, hint, children, className }: { label: ReactNode; 
 }
 
 /* ─────────── Surfaces ─────────── */
-export function Card({ className, children, interactive }: { className?: string; children: ReactNode; interactive?: boolean }) {
-  return <div className={cx("rounded-2xl border border-border bg-surface shadow-card", interactive && "transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-px hover:border-border-strong hover:shadow-md", className)}>{children}</div>;
+export function Card({ className, children, interactive, ...rest }: { className?: string; children: ReactNode; interactive?: boolean } & Omit<React.HTMLAttributes<HTMLDivElement>, "className" | "children">) {
+  return <div {...rest} className={cx("rounded-2xl border border-border bg-surface shadow-card", interactive && "transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-px hover:border-border-strong hover:shadow-md", className)}>{children}</div>;
 }
 
 export function CardHeader({ icon, title, description, actions, className }: { icon?: ReactNode; title: ReactNode; description?: ReactNode; actions?: ReactNode; className?: string }) {

@@ -14,9 +14,16 @@ import { DURATION, exitVector, rubberBand, swipeDirectionRating, swipeOutcome, s
 import { isReducedMotion, useReducedMotion } from "../motion";
 import { cx } from "../ui";
 
-/** How long the page should wait for the exit before swapping in the next card. */
+/** Exit duration; the page swaps in the next card on onExitEnd (transitionend), with this as a safety net. */
 export const CARD_EXIT_MS = 260;
 export const cardExitMs = () => (isReducedMotion() ? 140 : CARD_EXIT_MS);
+/** Promise that resolves when the stage reports its exit finished (or after a generous fallback). */
+export function exitBarrier(ref: React.MutableRefObject<(() => void) | null>, fallbackMs = 1500): Promise<void> {
+  return new Promise((res) => {
+    const t = setTimeout(() => { ref.current = null; res(); }, fallbackMs);
+    ref.current = () => { clearTimeout(t); ref.current = null; res(); };
+  });
+}
 
 const TINT: Record<string, string> = {
   again: "bg-again/[0.10] ring-again/40",
@@ -34,7 +41,7 @@ const TONE_BY_RATING: Record<number, string> = { 1: "again", 2: "hard", 3: "good
 
 const interactive = (el: EventTarget | null) => el instanceof Element && !!el.closest("button,a,input,textarea,select,audio,video,label,iframe,summary");
 
-export function CardStage({ enterKey, enterFrom, exitRating, swipeEnabled, labels, onCommit, onClick, children, className }: {
+export function CardStage({ enterKey, enterFrom, exitRating, swipeEnabled, labels, onCommit, onExitEnd, onClick, children, className }: {
   enterKey: number;
   /** rating whose exit to reverse (undo); null → enter from the stack */
   enterFrom: number | null;
@@ -43,6 +50,8 @@ export function CardStage({ enterKey, enterFrom, exitRating, swipeEnabled, label
   swipeEnabled: boolean;
   labels: Record<number, string>;
   onCommit: (rating: 1 | 3) => void;
+  /** fired when the exit transition has finished (opacity transitionend on the stage) */
+  onExitEnd?: () => void;
   onClick?: (e: React.MouseEvent) => void;
   children: ReactNode;
   className?: string;
@@ -123,7 +132,8 @@ export function CardStage({ enterKey, enterFrom, exitRating, swipeEnabled, label
   } as CSSProperties) : undefined;
 
   return (
-    <div ref={ref} className={cx("relative flex flex-1 flex-col will-change-transform", className)} style={{ ...style, touchAction: swipeEnabled ? "pan-y" : "auto" }}
+    <div ref={ref} className={cx("relative flex flex-1 flex-col will-change-transform", reduced && "m-fade-ok", className)} style={{ ...style, touchAction: swipeEnabled ? "pan-y" : "auto" }}
+      onTransitionEnd={(e) => { if (exiting && e.target === e.currentTarget && e.propertyName === "opacity") onExitEnd?.(); }}
       onClick={onClick} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
       <div key={enterKey} className={cx("relative flex flex-1 flex-col", back ? "m-card-return" : "m-card-enter")} style={enterStyle}>
         {children}
@@ -144,22 +154,27 @@ export function CardStage({ enterKey, enterFrom, exitRating, swipeEnabled, label
 
 /**
  * Two-phase 3D flip for "show answer": the front turns edge-on (fast, ease-in), the answer side
- * turns in (emphasized). Reduced motion → instant reveal (the answer itself fades).
+ * turns in (emphasized). Phases advance on animationend (spread `onAnimationEnd` on the flipping
+ * element), with timeouts as a safety net. Reduced motion → instant reveal (the answer fades).
  */
 export function useFlipReveal() {
   const [phase, setPhase] = useState<null | "out" | "in">(null);
-  const timers = useRef<number[]>([]);
-  const clear = () => { timers.current.forEach(clearTimeout); timers.current = []; };
-  useEffect(() => clear, []);
+  const commitRef = useRef<(() => void) | null>(null);
+  const timer = useRef<number | undefined>(undefined);
+  const arm = (fn: () => void, ms: number) => { clearTimeout(timer.current); timer.current = window.setTimeout(fn, ms); };
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const toIn = useCallback(() => { commitRef.current?.(); commitRef.current = null; setPhase("in"); arm(() => setPhase(null), 3000); }, []);
   const reveal = useCallback((commit: () => void, flip = true) => {
     if (!flip || isReducedMotion()) { commit(); return; }
-    clear();
+    commitRef.current = commit;
     setPhase("out");
-    timers.current.push(window.setTimeout(() => {
-      commit(); setPhase("in");
-      timers.current.push(window.setTimeout(() => setPhase(null), 260));
-    }, DURATION.fast));
-  }, []);
-  const reset = useCallback(() => { clear(); setPhase(null); }, []);
-  return { phase, reveal, reset, flipClass: phase === "out" ? "m-flip-out" : phase === "in" ? "m-flip-in" : "" };
+    arm(toIn, DURATION.fast * 10);
+  }, [toIn]);
+  const reset = useCallback(() => { clearTimeout(timer.current); commitRef.current = null; setPhase(null); }, []);
+  const onAnimationEnd = useCallback((e: React.AnimationEvent) => {
+    if (e.target !== e.currentTarget) return;
+    if (e.animationName === "m-flip-out") toIn();
+    else if (e.animationName === "m-flip-in") { clearTimeout(timer.current); setPhase(null); }
+  }, [toIn]);
+  return { phase, reveal, reset, onAnimationEnd, flipClass: phase === "out" ? "m-flip-out" : phase === "in" ? "m-flip-in" : "" };
 }

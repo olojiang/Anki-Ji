@@ -137,13 +137,14 @@ export function useSlidingIndicator(container: RefObject<HTMLElement | null>, ke
 /**
  * Smoothly reflows children marked `data-flip="<id>"` inside `container` whenever `signature`
  * changes (e.g. the joined order of ids). Positions are measured relative to the container so
- * page scrolling never triggers an animation. Transform-only.
+ * page scrolling never triggers an animation (`viewport` = measure on screen, for fixed stacks
+ * like toasts that grow from the bottom). Transform-only.
  */
-export function useFlip(container: RefObject<HTMLElement | null>, signature: string) {
+export function useFlip(container: RefObject<HTMLElement | null>, signature: string, viewport = false) {
   const prev = useRef<Map<string, number>>(new Map());
   useIsoLayoutEffect(() => {
     const c = container.current; if (!c) return;
-    const top = c.getBoundingClientRect().top;
+    const top = viewport ? 0 : c.getBoundingClientRect().top;
     const next = new Map<string, number>();
     const els = c.querySelectorAll<HTMLElement>("[data-flip]");
     els.forEach((el) => next.set(el.dataset.flip!, el.getBoundingClientRect().top - top));

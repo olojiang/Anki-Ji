@@ -7,7 +7,7 @@ import { useApp } from "@/components/providers";
 import { api } from "@/lib/api";
 import { Button, Card, Kbd, Pill, ProgressBar, Skeleton, cx } from "@/components/ui";
 import { CardView, type RenderedCardDTO } from "@/components/CardView";
-import { CardStage, cardExitMs, useFlipReveal } from "@/components/study/CardStage";
+import { CardStage, exitBarrier, useFlipReveal } from "@/components/study/CardStage";
 import { SessionComplete } from "@/components/study/SessionComplete";
 
 interface StudyCard extends RenderedCardDTO { cardId: number; noteId: number; type: string; state: string; intervals: Record<string, string>; flag: number; leech: boolean; tags: string[]; retrievability: number | null; stability: number; difficulty: number; reps: number; lapses: number }
@@ -39,6 +39,7 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
   const [enterFrom, setEnterFrom] = useState<number | null>(null);
   const [pressed, setPressed] = useState<number | null>(null);
   const rated = useRef<number[]>([]);
+  const exitDone = useRef<(() => void) | null>(null);
   const flip = useFlipReveal();
 
   const apply = useCallback((s: StudyState | null, from: number | null = null) => {
@@ -69,7 +70,7 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
       // the exit animation runs in parallel with the request; the next card enters when both are done
       const [r] = await Promise.all([
         api<{ leech: boolean; next: StudyState }>("/api/study/answer", { body: { cardId: st.card.cardId, rating, durationMs: Date.now() - shownAt.current, deckId } }),
-        new Promise((res) => setTimeout(res, cardExitMs())),
+        exitBarrier(exitDone),
       ]);
       if (r.leech) toast(t("leechNotice"), "error");
       rated.current.push(rating);
@@ -176,9 +177,9 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
           <div className="relative flex flex-1 flex-col">
             <div className="pointer-events-none absolute inset-x-8 -bottom-3 top-6 rounded-3xl border border-border/70 bg-surface/50 shadow-xs" />
             <div className="pointer-events-none absolute inset-x-4 -bottom-1.5 top-3 rounded-3xl border border-border/80 bg-surface/80 shadow-xs" />
-            <CardStage enterKey={seq} enterFrom={enterFrom} exitRating={exit} swipeEnabled={revealed && !busy} onClick={onCardClick} onCommit={rate}
+            <CardStage enterKey={seq} enterFrom={enterFrom} exitRating={exit} swipeEnabled={revealed && !busy} onClick={onCardClick} onCommit={rate} onExitEnd={() => exitDone.current?.()}
               labels={{ 1: t("again"), 2: t("hard"), 3: t("good"), 4: t("easy") }}>
-            <Card className={cx("relative flex min-h-[52dvh] flex-1 flex-col rounded-3xl px-5 pb-10 pt-5 shadow-hero sm:px-12 sm:pb-14 md:min-h-0 2xl:px-16 2xl:pb-16", !revealed && "cursor-pointer md:cursor-auto", flip.flipClass)}>
+            <Card className={cx("relative flex min-h-[52dvh] flex-1 flex-col rounded-3xl px-5 pb-10 pt-5 shadow-hero sm:px-12 sm:pb-14 md:min-h-0 2xl:px-16 2xl:pb-16", !revealed && "cursor-pointer md:cursor-auto", flip.flipClass)} onAnimationEnd={flip.onAnimationEnd}>
               <div className="mb-6 flex items-center justify-between gap-2">
                 <Pill tone={stateTone} dot>{stateLabel}</Pill>
                 <span className="flex items-center gap-1.5">
