@@ -13,6 +13,8 @@ export const SI_DICT = {
   views: ["{n} 次浏览", "{n} views"], clones: ["{n} 次复制", "{n} copies"], expiresOn: ["{d} 到期", "Expires {d}"], noExpiry: ["永久有效", "No expiry"],
   existingLinks: ["已有链接", "Existing links"], noLinks: ["还没有分享链接", "No share links yet"],
   // ── sharing (public page) ──
+  cardsN1: ["1 张卡片", "1 card"], notesN1: ["1 条笔记", "1 note"], subdecksN1: ["1 个子牌组", "1 sub-deck"], extractN1: ["1 条摘录", "1 extract"],
+  statQueue: ["今日", "Today"], statActive: ["进行中", "Active"],
   sharedDeck: ["共享牌组", "Shared deck"], cardsN: ["{n} 张卡片", "{n} cards"], notesN: ["{n} 条笔记", "{n} notes"], subdecksN: ["{n} 个子牌组", "{n} sub-decks"],
   structure: ["牌组结构", "Deck structure"], samples: ["示例卡片", "Sample cards"], tapToFlip: ["点击卡片翻面", "Tap a card to flip it"],
   copyToMine: ["复制到我的收藏", "Copy to my collection"], loginToCopy: ["登录后复制", "Log in to copy"], signupToCopy: ["注册新账号", "Create an account"],
@@ -57,7 +59,8 @@ export const SI_DICT = {
 export type SiKey = keyof typeof SI_DICT;
 
 export function tsi(locale: Locale, key: SiKey | string, vars?: Record<string, string | number>): string {
-  const e = (SI_DICT as Record<string, readonly [string, string]>)[key];
+  const dict = SI_DICT as Record<string, readonly [string, string]>;
+  const e = (vars?.n === 1 && dict[`${key}1`]) || dict[key];
   let s = e ? e[locale === "en" ? 1 : 0] : key;
   if (vars) for (const [k, v] of Object.entries(vars)) s = s.replaceAll(`{${k}}`, String(v));
   return s;

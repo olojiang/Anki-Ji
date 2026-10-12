@@ -42,3 +42,13 @@ describe("share core", () => {
     ]);
   });
 });
+
+describe("share/reading strings", () => {
+  it("picks singular forms for n = 1 and interpolates", async () => {
+    const { tsi } = await import("@/lib/i18n-share-ir");
+    expect(tsi("en", "cardsN", { n: 1 })).toBe("1 card");
+    expect(tsi("en", "cardsN", { n: 3 })).toBe("3 cards");
+    expect(tsi("zh", "cardsN", { n: 3 })).toBe("3 张卡片");
+    expect(tsi("en", "cloneDone", { added: 2, cards: 3, skipped: 0 })).toBe("Added 2 notes (3 cards); skipped 0 you already have");
+  });
+});

@@ -120,7 +120,7 @@ export function Reader({ id }: { id: number }) {
       <div className="mt-4 space-y-3 text-[13px]">
         <label className="flex items-center justify-between gap-3">
           <span className="text-sub">{s("priority")}</span>
-          <Input type="number" min={0} max={100} value={prio} onChange={(e) => setPrio(e.target.value)} onBlur={savePriority} onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()} className="w-20 text-right" aria-label={s("priority")} data-testid="reading-priority" />
+          <Input type="number" min={0} max={100} value={prio} onChange={(e) => setPrio(e.target.value)} onBlur={savePriority} onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()} className="!w-24 text-right" aria-label={s("priority")} data-testid="reading-priority" />
         </label>
         <div className="flex flex-wrap gap-1.5">
           <Pill tone="neutral" mono>{s("reps", { n: item.reps })}</Pill>

@@ -102,7 +102,7 @@ export function ReadingList() {
           <Card className="p-5">
             <CardHeader icon={<IconChip tone="orange"><BookOpen /></IconChip>} title={s("todayQueue")} description={s("queueCap", { n: data.cap })} />
             <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-              {[[queue.length, s("todayQueue")], [active.length, s("allItems")], [done.length, s("doneItems")]].map(([n, l]) => (
+              {[[queue.length, s("statQueue")], [active.length, s("statActive")], [done.length, s("doneItems")]].map(([n, l]) => (
                 <div key={String(l)} className="rounded-xl border border-border bg-subtle px-2 py-3"><div className="num text-[22px] font-semibold leading-none text-fg">{n}</div><div className="mt-1.5 truncate text-[11.5px] text-faint">{l}</div></div>
               ))}
             </div>
