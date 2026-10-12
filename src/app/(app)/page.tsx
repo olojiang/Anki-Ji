@@ -2,13 +2,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronRight, Plus, MoreHorizontal, Play, Settings2, Pencil, Trash2, FolderPlus, Filter, RefreshCw, Eraser, Flame, CheckCircle2, GripVertical, Layers, Sparkles } from "lucide-react";
+import { ChevronRight, Plus, MoreHorizontal, Play, Settings2, Pencil, Trash2, FolderPlus, Filter, RefreshCw, Eraser, Flame, CheckCircle2, GripVertical, Layers, Sparkles, GraduationCap } from "lucide-react";
 import { useApp } from "@/components/providers";
 import { api } from "@/lib/api";
 import { Button, Card, Empty, Field, IconChip, Input, Modal, PageHeader, Pill, ProgressRing, Select, Spinner, cx, type Tone } from "@/components/ui";
 import { buildTree, type TreeNode } from "@/core/tree";
 import type { Counts, DeckDTO } from "@/lib/types";
 import { DeckDashboard, type DashStats } from "@/components/DeckDashboard";
+import { tm } from "@/lib/i18n-modes-batch";
 
 type Node = TreeNode<DeckDTO>;
 type DropZone = "before" | "after" | "inside";
@@ -140,6 +141,7 @@ export default function DecksPage() {
                 {!n.filtered && <MenuItem icon={FolderPlus} onClick={() => { setMenu(null); setName(""); setModal({ kind: "new", parentId: n.id }); }}>{t("newSubdeck")}</MenuItem>}
                 <MenuItem icon={Pencil} onClick={() => { setMenu(null); setName(n.name); setModal({ kind: "rename", deck: n }); }}>{t("rename")}</MenuItem>
                 <MenuItem icon={Settings2} onClick={() => router.push(`/decks/${n.id}`)}>{t("options")}</MenuItem>
+                <MenuItem icon={GraduationCap} onClick={() => router.push(`/modes?deck=${n.id}`)}>{tm(locale, "modes")}</MenuItem>
                 {n.filtered && <MenuItem icon={RefreshCw} onClick={() => { setMenu(null); filteredAction(n, "rebuild"); }}>{t("rebuild")}</MenuItem>}
                 {n.filtered && <MenuItem icon={Eraser} onClick={() => { setMenu(null); filteredAction(n, "empty"); }}>{t("emptyDeck")}</MenuItem>}
                 {n.parentId != null && <MenuItem icon={Layers} onClick={async () => { setMenu(null); try { await api(`/api/decks/${n.id}/move`, { body: { parentId: null, index: 9999 } }); await load(); } catch (e) { err(e); } }}>{t("moveToRoot")}</MenuItem>}

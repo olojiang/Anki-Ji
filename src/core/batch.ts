@@ -11,7 +11,7 @@ export interface ReplaceSpec { find: string; replace: string; regex?: boolean; c
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /** Global RegExp for a spec. Throws `empty_find` / `invalid_regex`. */
-export function buildPattern(spec: Pick<ReplaceSpec, "find" | "regex" | "caseSensitive">): RegExp {
+export function buildPattern(spec: Pick<ReplaceSpec, "find" | "regex" | "caseSensitive"> & Partial<ReplaceSpec>): RegExp {
   if (!spec.find) throw new Error("empty_find");
   const flags = `g${spec.caseSensitive ? "" : "i"}`;
   const src = spec.regex ? spec.find : escapeRe(spec.find);
