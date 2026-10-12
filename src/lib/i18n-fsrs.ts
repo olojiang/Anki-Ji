@@ -48,6 +48,7 @@ export const FSRS_DICT = {
   remNotConfigured: ["服务器尚未配置推送密钥（VAPID）", "Push isn't configured on the server yet (VAPID keys)"],
   remDevices: ["已订阅设备：{n}", "Subscribed devices: {n}"],
   remThisDevice: ["本设备已订阅", "This device is subscribed"],
+  remThisDeviceEnable: ["在本设备接收", "Also notify this device"],
   remDailyNote: ["提醒每日最多一次；在提醒时间之后的下一次定时任务发送", "At most once a day, sent by the next scheduled run after your reminder time"],
   // goal card
   goalToday: ["今日目标", "Today's goal"], goalDone: ["已完成", "Goal met"],

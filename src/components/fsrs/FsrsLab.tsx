@@ -105,7 +105,7 @@ function Metric({ label, value, sub }: { label: string; value: string; sub?: str
 
 /** Workload (area) and knowledge (line) vs desired retention. Click/tap a column to pick it. */
 function RetentionChart({ points, metric, selected, optimal, onPick, labels }: { points: Point[]; metric: "reviews" | "minutes"; selected: number; optimal: number | null; onPick: (r: number) => void; labels: { workload: string; knowledge: string } }) {
-  const W = 600, H = 200, P = { l: 34, r: 12, t: 10, b: 22 };
+  const W = 460, H = 190, P = { l: 30, r: 8, t: 10, b: 24 };
   const vals = points.map((p) => (metric === "reviews" ? p.avgReviewsPerDay : p.avgMinutesPerDay));
   const max = Math.max(1, ...vals) * 1.08;
   const memMax = Math.max(1, ...points.map((p) => p.memorizedEnd)) * 1.05;
@@ -120,14 +120,14 @@ function RetentionChart({ points, metric, selected, optimal, onPick, labels }: {
   const ticks = [0.7, 0.75, 0.8, 0.85, 0.9, 0.95];
   return (
     <div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="h-44 w-full select-none sm:h-52" role="img" aria-label={labels.workload}>
+      <svg viewBox={`0 0 ${W} ${H}`} className="h-48 w-full select-none sm:h-56" role="img" aria-label={labels.workload}>
         {[0, 0.5, 1].map((f) => (
           <g key={f}>
             <line x1={P.l} x2={W - P.r} y1={y(max / 1.08 * f)} y2={y(max / 1.08 * f)} className={cx("stroke-border", f > 0 && "[stroke-dasharray:3_4]")} strokeWidth={1} />
-            <text x={P.l - 6} y={y(max / 1.08 * f) + 3} textAnchor="end" className="fill-faint text-[10px] num">{Math.round((max / 1.08) * f)}</text>
+            <text x={P.l - 6} y={y(max / 1.08 * f) + 3} textAnchor="end" className="fill-faint text-[11px] num">{Math.round((max / 1.08) * f)}</text>
           </g>
         ))}
-        {ticks.map((r) => <text key={r} x={x(r)} y={H - 6} textAnchor="middle" className="fill-faint text-[10px] num">{r.toFixed(2)}</text>)}
+        {ticks.map((r) => <text key={r} x={x(r)} y={H - 6} textAnchor="middle" className="fill-faint text-[11px] num">{r.toFixed(2)}</text>)}
         <path d={area} className="fill-primary/15" />
         <path d={line} fill="none" className="stroke-primary" strokeWidth={2.2} strokeLinejoin="round" />
         <path d={mem} fill="none" className="stroke-success" strokeWidth={1.6} strokeDasharray="5 4" />

@@ -90,7 +90,10 @@ export function StudyPrefsCards({ timezone }: { timezone: string }) {
           <>
             {push && !push.configured && <p className="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2.5 text-[13px] text-sub">{t("remNotConfigured")}</p>}
             {denied && <p className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2.5 text-[13px] text-sub">{t("remDenied")}</p>}
-            <Toggle checked={prefs.reminderEnabled && subscribed} onChange={toggleReminder} label={t("remEnable")} />
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <Toggle checked={prefs.reminderEnabled} onChange={toggleReminder} label={t("remEnable")} />
+              {prefs.reminderEnabled && !subscribed && push?.configured && <Button size="sm" loading={busy} onClick={() => toggleReminder(true)}>{t("remThisDeviceEnable")}</Button>}
+            </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label={t("remHour")} hint={t("remHourHint", { tz: timezone })}>
                 <Select className="w-full" value={prefs.reminderHour} onChange={(e) => save({ reminderHour: Number(e.target.value) })}>
