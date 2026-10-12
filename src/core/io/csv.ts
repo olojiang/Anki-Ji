@@ -52,8 +52,8 @@ export interface FlatNote { deckPath: string; type: NoteType; fields: NoteFields
 const ALIASES: Record<string, string[]> = {
   deck: ["deck", "牌组", "卡组", "分组"],
   type: ["type", "notetype", "note type", "类型", "题型"],
-  front: ["front", "正面", "question", "问题", "text", "文本", "题目"],
-  back: ["back", "背面", "answer", "答案", "extra", "额外", "解析"],
+  front: ["front", "正面", "question", "问题", "text", "文本", "题目", "term", "word", "单词", "词语", "术语", "词条", "prompt"],
+  back: ["back", "背面", "answer", "答案", "extra", "额外", "解析", "definition", "meaning", "释义", "定义", "解释", "含义", "response"],
   tags: ["tags", "tag", "标签"],
   fields_json: ["fields_json"],
 };
