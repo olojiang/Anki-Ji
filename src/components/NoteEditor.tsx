@@ -187,7 +187,7 @@ export function NoteEditor({ decks, draft, setDraft, lockType, editing }: { deck
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
       <div className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label={<span className="flex items-center justify-between gap-2">{t("noteType")}<Link href="/notetypes" className="inline-flex min-h-6 items-center text-[12px] font-normal text-primary hover:underline">{tn(locale, "manage")}</Link></span>}>
+          <Field label={t("noteType")} hint={<Link href="/notetypes" className="inline-flex min-h-11 items-center text-primary hover:underline sm:min-h-0">{tn(locale, "manage")}</Link>}>
             <Select className="w-full" disabled={lockType || (editing && draft.type === "custom")} value={typeValue} onChange={(e) => pickType(e.target.value)}>
               <optgroup label={tn(locale, "builtIn")}>
                 {NOTE_TYPES.map((x) => <option key={x} value={x}>{t(`t_${x}`)}</option>)}
