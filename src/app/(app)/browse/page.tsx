@@ -178,12 +178,12 @@ export default function BrowsePage() {
                 <tr>
                   <th className="w-10 px-3 py-2"><input type="checkbox" className="accent-primary" checked={allChecked} onChange={() => setSel(allChecked ? new Set() : new Set(list.map(key)))} /></th>
                   {manual && <th className="w-16" />}
-                  <th className="px-2 py-2.5 font-medium">{t("colQuestion")}</th>
-                  <th className="w-[18%] px-2 py-2.5 font-medium">{t("colDeck")}</th>
+                  <th className="w-[38%] px-2 py-2.5 font-medium">{t("colQuestion")}</th>
+                  <th className="w-[14%] px-2 py-2.5 font-medium">{t("colDeck")}</th>
                   <th className="hidden w-28 px-2 py-2.5 font-medium xl:table-cell">{t("colType")}</th>
                   <th className="w-24 px-2 py-2.5 font-medium">{t("colDueAt")}</th>
                   <th className="w-20 whitespace-nowrap px-2 py-2.5 text-right font-medium">{t("colIvl")}</th>
-                  <th className="hidden w-[16%] py-2.5 pl-5 pr-2 font-medium xl:table-cell">{t("colTags")}</th>
+                  <th className="hidden w-[12%] py-2.5 pl-5 pr-2 font-medium xl:table-cell">{t("colTags")}</th>
                   <th className="w-28 px-3 py-2" />
                 </tr>
               </thead>
