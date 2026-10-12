@@ -70,7 +70,7 @@ export default function DeckOptionsPage({ params }: { params: Promise<{ id: stri
 
   return (
     <div className="max-w-3xl">
-      <PageHeader title={<span className="inline-flex items-center gap-2"><button onClick={() => router.push("/")} className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-sub hover:bg-muted"><ArrowLeft className="h-4 w-4" /></button>{t("deckOptions")} · {deck.name}</span>}
+      <PageHeader title={<span className="inline-flex items-center gap-2"><button onClick={() => router.push("/")} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-sub hover:bg-muted sm:h-8 sm:w-8"><ArrowLeft className="h-4 w-4" /></button>{t("deckOptions")} · {deck.name}</span>}
         actions={<Button variant="primary" loading={busy} onClick={save}><Save className="h-4 w-4" />{t("save")}</Button>} />
       <div className="space-y-4">
         {deck.filtered && filter && (

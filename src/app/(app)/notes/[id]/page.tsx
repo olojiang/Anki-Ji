@@ -43,7 +43,7 @@ export default function EditNotePage({ params }: { params: Promise<{ id: string 
   const rl = ["", t("again"), t("hard"), t("good"), t("easy")];
   return (
     <div>
-      <PageHeader title={<span className="inline-flex items-center gap-2"><button onClick={back} className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-sub hover:bg-muted"><ArrowLeft className="h-4 w-4" /></button>{t("editNote")}</span>}
+      <PageHeader title={<span className="inline-flex items-center gap-2"><button onClick={back} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-sub hover:bg-muted sm:h-8 sm:w-8"><ArrowLeft className="h-4 w-4" /></button>{t("editNote")}</span>}
         actions={<><Button variant="ghost" onClick={remove}><Trash2 className="h-4 w-4" />{t("delete")}</Button><Button variant="primary" loading={busy} onClick={save}><Save className="h-4 w-4" />{t("save")}</Button></>} />
       <NoteEditor decks={decks} draft={draft} setDraft={setDraft} />
       <div className="mt-8 grid gap-4 lg:grid-cols-2">

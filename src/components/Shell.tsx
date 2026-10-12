@@ -68,7 +68,7 @@ export function Shell({ children }: { children: ReactNode }) {
 
   const side = (
     <div className="flex h-full flex-col">
-      <div className="flex h-16 items-center px-5"><Link href="/" className="focus-ring rounded-md"><Logo /></Link></div>
+      <div className="flex h-16 items-center px-5"><Link href="/" className="focus-ring inline-flex h-11 items-center rounded-md"><Logo /></Link></div>
       <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-2">
         {groups.map((g, gi) => (
           <div key={gi} className="space-y-0.5">
@@ -155,7 +155,7 @@ export function Shell({ children }: { children: ReactNode }) {
           </aside>
         </div>
       )}
-      <main className={cx("mx-auto w-full animate-fade-in px-4 sm:px-6 lg:px-12 lg:py-10",
+      <main className={cx("mx-auto w-full px-4 sm:px-6 lg:px-12 lg:py-10",
         wide ? "max-w-[1440px]" : "max-w-6xl",
         studying ? "py-4 md:py-8" : "py-6 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-10")}>{children}</main>
       {/* phone bottom tab bar */}

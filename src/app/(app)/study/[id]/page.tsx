@@ -196,7 +196,7 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
             </Card>
             </div>
           </div>
-          <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-elevated/90 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-xl md:sticky md:inset-auto md:z-auto md:mt-6 md:border-0 md:bg-transparent md:bg-gradient-to-t md:from-bg md:via-bg/95 md:to-transparent md:px-0 md:pb-3 md:backdrop-blur-none">
+          <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-elevated/95 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-xl md:sticky md:inset-auto md:z-auto md:mt-6 md:border-0 md:bg-transparent md:bg-gradient-to-t md:from-bg md:via-bg/95 md:to-transparent md:px-0 md:pb-3 md:backdrop-blur-none">
             {!revealed ? (
               <Button variant="primary" size="lg" className="h-14 w-full text-[16px] md:h-12 md:text-[15px]" onClick={() => setRevealed(true)}>{t("showAnswer")} <span className="ml-1 hidden md:inline-flex"><Kbd>Space</Kbd></span></Button>
             ) : (

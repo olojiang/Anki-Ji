@@ -95,7 +95,7 @@ export function ThemeMenu({ placement = "up", className }: { placement?: "up" | 
   return (
     <div ref={ref} className={cx("relative", className)}>
       <button type="button" onClick={() => setOpen(!open)} title={t("theme")} aria-label={t("theme")} aria-expanded={open}
-        className={cx("focus-ring inline-flex h-8 items-center gap-1.5 rounded-lg px-2 text-sub transition-colors hover:bg-muted hover:text-fg", open && "bg-muted text-fg")}>
+        className={cx("focus-ring inline-flex h-11 items-center gap-1.5 rounded-lg px-2.5 text-sub lg:h-8 lg:px-2 transition-colors hover:bg-muted hover:text-fg", open && "bg-muted text-fg")}>
         <Palette className="h-4 w-4" />
         {cur ? <Swatch m={cur} className="h-3.5 w-3.5" /> : <Monitor className="h-3.5 w-3.5" />}
       </button>

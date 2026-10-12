@@ -164,7 +164,7 @@ export function Segmented<T extends string>({ value, onChange, options, classNam
 /* ─────────── Toggle ─────────── */
 export function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label?: ReactNode }) {
   return (
-    <label className="inline-flex cursor-pointer items-center gap-2.5 text-[13.5px] text-fg">
+    <label className="inline-flex min-h-11 cursor-pointer items-center gap-2.5 text-[13.5px] text-fg sm:min-h-0">
       <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)}
         className={cx("focus-ring relative h-5 w-9 shrink-0 rounded-full shadow-inner transition-colors duration-200", checked ? "bg-primary" : "bg-border-strong")}>
         <span className={cx("absolute left-0 top-0.5 h-4 w-4 rounded-full bg-white shadow-[0_1px_3px_rgb(0_0_0/0.25)] transition-transform duration-200 ease-out", checked ? "translate-x-[18px]" : "translate-x-0.5")} />

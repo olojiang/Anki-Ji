@@ -237,7 +237,7 @@ export default function BrowsePage() {
         </Card>
         </>
       )}
-      {manual && rows && rows.length > 0 && <p className="mt-3 text-xs text-faint">{t("dragRows")}</p>}
+      {manual && rows && rows.length > 0 && <p className="mt-3 hidden text-xs text-faint lg:block">{t("dragRows")}</p>}
 
       <Modal open={help} onClose={() => setHelp(false)} title={t("syntaxHelp")} wide>
         <div className="grid gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">

@@ -70,11 +70,11 @@ function MdField({ label, value, onChange, rows = 4, cloze, autoFocus }: { label
   ];
   return (
     <div>
-      <div className="mb-1.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+      <div className="mb-1.5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
         <span className="text-[13px] font-medium text-sub">{label}</span>
-        <div className="-mr-1 flex flex-wrap items-center gap-0.5">
-          {tools.map((x) => <button key={x.label} type="button" onClick={x.on} title={x.label} className={cx("inline-flex h-11 min-w-11 items-center justify-center gap-1 rounded-lg px-1.5 text-faint hover:bg-muted hover:text-fg sm:h-7 sm:min-w-0 sm:rounded-md", x.label === t("clozeBtn") && "text-primary")}><x.icon className="h-3.5 w-3.5" />{x.label === t("clozeBtn") && <span className="text-xs">{x.label}</span>}</button>)}
-          <button type="button" onClick={() => setPreview(!preview)} title={t("preview")} className={cx("inline-flex h-11 w-11 items-center justify-center rounded-lg hover:bg-muted sm:h-7 sm:w-7 sm:rounded-md", preview ? "text-primary" : "text-faint")}><Eye className="h-3.5 w-3.5" /></button>
+        <div className="-mx-1 flex items-center justify-between gap-0.5 sm:mx-0 sm:-mr-1 sm:justify-start">
+          {tools.map((x) => <button key={x.label} type="button" onClick={x.on} title={x.label} className={cx("inline-flex h-11 min-w-10 items-center justify-center gap-1 rounded-lg px-1.5 text-faint hover:bg-muted hover:text-fg sm:h-7 sm:min-w-0 sm:rounded-md", x.label === t("clozeBtn") && "text-primary")}><x.icon className="h-3.5 w-3.5" />{x.label === t("clozeBtn") && <span className="text-xs">{x.label}</span>}</button>)}
+          <button type="button" onClick={() => setPreview(!preview)} title={t("preview")} className={cx("inline-flex h-11 w-10 items-center justify-center rounded-lg hover:bg-muted sm:h-7 sm:w-7 sm:rounded-md", preview ? "text-primary" : "text-faint")}><Eye className="h-3.5 w-3.5" /></button>
         </div>
       </div>
       {preview ? (

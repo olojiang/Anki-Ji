@@ -198,7 +198,7 @@ export default function DecksPage() {
           <div className="[&>div:first-child>div:first-child]:border-t-0 [&>div:last-child>div:last-child]:rounded-b-2xl">{tree.map((n) => row(n, 0))}</div>
         </Card>
       )}
-      {decks && decks.length > 1 && <p className="mt-3 px-1 text-xs text-faint">{t("dragHint")}</p>}
+      {decks && decks.length > 1 && <p className="mt-3 hidden px-1 text-xs text-faint md:block">{t("dragHint")}</p>}
 
       <Modal open={!!modal} onClose={() => setModal(null)}
         title={modal?.kind === "rename" ? t("rename") : modal?.kind === "filtered" ? t("newFilteredDeck") : modal?.kind === "new" && modal.parentId ? t("newSubdeck") : t("newDeck")}
