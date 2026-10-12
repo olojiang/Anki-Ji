@@ -1,7 +1,7 @@
 "use client";
 /** Study-screen voice tools: auto-read front/back per resolved TTS options, speaker button + R shortcut, record & compare. */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Volume2, VolumeX, Mic } from "lucide-react";
+import { Volume2, VolumeX, Mic, X } from "lucide-react";
 import { useApp } from "@/components/providers";
 import { cx } from "@/components/ui";
 import { api } from "@/lib/api";
@@ -80,7 +80,10 @@ export function StudyVoice({ deckId, card, revealed, toolClass }: { deckId: numb
       </button>
       {recOpen && (
         <div className="fixed inset-x-3 top-16 z-40 animate-rise-in rounded-2xl border border-border bg-elevated p-3 shadow-pop sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[420px]" onClick={(e) => e.stopPropagation()}>
-          <div className="mb-2 text-[13px] font-medium text-fg">{T("recTitle")}</div>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <span className="text-[13px] font-medium text-fg">{T("recTitle")}</span>
+            <button onClick={() => setRecOpen(false)} className="-m-1.5 inline-flex h-11 w-11 items-center justify-center rounded-lg text-faint hover:bg-muted hover:text-fg sm:h-8 sm:w-8" aria-label={T("recStop")} data-testid="rec-close"><X className="h-4 w-4" /></button>
+          </div>
           <RecordPanel key={card.cardId} cardAudio={audioUrls} speakCard={supported ? () => speak(revealed ? "back" : "front") : undefined} />
         </div>
       )}

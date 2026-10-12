@@ -36,13 +36,13 @@ export function AiCardReview({ items, onChange }: { items: ReviewItem[]; onChang
                 </div>
                 {c.kind === "qa" ? (
                   <div className="grid gap-1.5 md:grid-cols-2">
-                    <Textarea rows={2} aria-label={T("qaFront")} placeholder={T("qaFront")} value={c.front} onChange={(e) => edit(it, { front: e.target.value })} className="text-[13.5px]" />
-                    <Textarea rows={2} aria-label={T("qaBack")} placeholder={T("qaBack")} value={c.back} onChange={(e) => edit(it, { back: e.target.value })} className="text-[13.5px]" />
+                    <Textarea rows={2} aria-label={T("qaFront")} placeholder={T("qaFront")} value={c.front} onChange={(e) => edit(it, { front: e.target.value })} className="max-h-48 text-[13.5px] [field-sizing:content]" />
+                    <Textarea rows={2} aria-label={T("qaBack")} placeholder={T("qaBack")} value={c.back} onChange={(e) => edit(it, { back: e.target.value })} className="max-h-48 text-[13.5px] [field-sizing:content]" />
                   </div>
                 ) : (
                   <div className="grid gap-1.5 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-                    <Textarea rows={2} aria-label={T("clozeText")} placeholder={T("clozeText")} value={c.text} onChange={(e) => edit(it, { text: e.target.value })} className="font-mono text-[13px]" />
-                    <Textarea rows={2} aria-label={T("clozeExtra")} placeholder={T("clozeExtra")} value={c.extra} onChange={(e) => edit(it, { extra: e.target.value })} className="text-[13.5px]" />
+                    <Textarea rows={2} aria-label={T("clozeText")} placeholder={T("clozeText")} value={c.text} onChange={(e) => edit(it, { text: e.target.value })} className="max-h-48 font-mono text-[13px] [field-sizing:content]" />
+                    <Textarea rows={2} aria-label={T("clozeExtra")} placeholder={T("clozeExtra")} value={c.extra} onChange={(e) => edit(it, { extra: e.target.value })} className="max-h-48 text-[13.5px] [field-sizing:content]" />
                   </div>
                 )}
                 {!valid && <p className="text-[11.5px] text-danger">{c.kind === "cloze" ? T("noClozeWarn") : T("e_text_required")}</p>}
