@@ -110,7 +110,7 @@ export const DICT = {
   // redesign (visual-only strings)
   heroTitleA: ["记得更牢，", "Remember more."], heroTitleB: ["复习更少。", "Review less."],
   heroSub: ["基于 FSRS-6 记忆模型，在你快要遗忘的那一刻安排复习。无限层级牌组、富文本卡片、完整导入导出。", "FSRS-6 schedules each review right before you'd forget. Nested decks, rich cards, full import & export."],
-  heroFoot: ["数据随时可导出 · 浅色 / 深色主题 · 中英双语", "Export any time · Light & dark · 中文 / English"],
+  heroFoot: ["数据随时可导出 · 7 款主题 · 手机与电脑自适应 · 中英双语", "Export any time · 7 themes · Phone & desktop · 中文 / English"],
   heroNext: ["下次复习", "Next review"], heroRetention: ["保留率", "Retention"], heroStreak: ["连续学习", "Streak"], days: ["天", "days"],
   dueToday: ["今日待学", "Due today"], reviewedToday: ["今日已复习", "Reviewed today"], cardsUnit: ["张", "cards"],
   allClear: ["今天的任务都完成了", "All caught up for today"], clearedPct: ["今日已清 {p}%", "{p}% clear today"],
