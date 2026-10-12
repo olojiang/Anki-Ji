@@ -5,12 +5,14 @@ import { useApp } from "./providers";
 import { api } from "@/lib/api";
 import { THEMES, type Theme, type ThemeMeta } from "@/lib/themes";
 import { cx } from "./ui";
+import { applyTheme } from "./providers";
+import { runThemeTransition, usePresence } from "./motion";
 
-/** Persist locally (instant, no flash next load) and to the user's settings (best effort). */
+/** Persist locally (instant, no flash next load) and to the user's settings (best effort). `origin` = clicked control → circular reveal. */
 export function useChooseTheme() {
   const { setTheme } = useApp();
-  return (id: Theme) => {
-    setTheme(id);
+  return (id: Theme, origin?: HTMLElement | null) => {
+    runThemeTransition(() => { setTheme(id); applyTheme(id); }, origin);
     api("/api/auth/me", { method: "PATCH", body: { settings: { theme: id } } }).catch(() => {});
   };
 }
@@ -49,7 +51,7 @@ export function ThemeGrid() {
       {THEMES.map((m) => {
         const on = theme === m.id;
         return (
-          <button key={m.id} type="button" onClick={() => choose(m.id)} aria-pressed={on}
+          <button key={m.id} type="button" onClick={(e) => choose(m.id, e.currentTarget)} aria-pressed={on}
             className={cx("focus-ring group overflow-hidden rounded-xl border text-left transition-all duration-150 hover:-translate-y-px hover:shadow-md",
               on ? "border-primary shadow-[0_0_0_3px_rgb(var(--primary)/0.18)]" : "border-border hover:border-border-strong")}>
             <div className="aspect-[16/10] w-full border-b border-border"><MiniPreview m={m} /></div>
@@ -61,7 +63,7 @@ export function ThemeGrid() {
           </button>
         );
       })}
-      <button type="button" onClick={() => choose("system")} aria-pressed={theme === "system"}
+      <button type="button" onClick={(e) => choose("system", e.currentTarget)} aria-pressed={theme === "system"}
         className={cx("focus-ring overflow-hidden rounded-xl border text-left transition-all duration-150 hover:-translate-y-px hover:shadow-md",
           theme === "system" ? "border-primary shadow-[0_0_0_3px_rgb(var(--primary)/0.18)]" : "border-border hover:border-border-strong")}>
         <div className="relative aspect-[16/10] w-full border-b border-border">
@@ -83,6 +85,7 @@ export function ThemeMenu({ placement = "up", className }: { placement?: "up" | 
   const { theme, locale, t } = useApp();
   const choose = useChooseTheme();
   const [open, setOpen] = useState(false);
+  const pop = usePresence(open, 120);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open) return;
@@ -99,11 +102,11 @@ export function ThemeMenu({ placement = "up", className }: { placement?: "up" | 
         <Palette className="h-4 w-4" />
         {cur ? <Swatch m={cur} className="h-3.5 w-3.5" /> : <Monitor className="h-3.5 w-3.5" />}
       </button>
-      {open && (
-        <div className={cx("absolute z-50 w-52 animate-scale-in rounded-xl border border-border bg-elevated p-1 shadow-pop", placement === "up" ? "bottom-10 left-0 origin-bottom-left" : "right-0 top-10 origin-top-right")}>
+      {pop.mounted && (
+        <div className={cx("absolute z-50 w-52 rounded-xl border border-border bg-elevated p-1 shadow-pop", open ? "animate-pop-in" : "pointer-events-none animate-pop-out", placement === "up" ? "bottom-10 left-0 origin-bottom-left" : "right-0 top-10 origin-top-right")}>
           <div className="px-2.5 pb-1 pt-1.5 text-[11px] font-medium uppercase tracking-[0.04em] text-faint">{t("theme")}</div>
           {THEMES.map((m) => (
-            <button key={m.id} type="button" onClick={() => { choose(m.id); setOpen(false); }}
+            <button key={m.id} type="button" onClick={(e) => { choose(m.id, e.currentTarget); setOpen(false); }}
               className={cx("flex h-8 w-full items-center gap-2.5 rounded-md px-2.5 text-left text-[13px] transition-colors hover:bg-muted", theme === m.id ? "font-medium text-fg" : "text-sub")}>
               <Swatch m={m} />
               <span className="flex-1">{locale === "zh" ? m.zh : m.en}</span>
@@ -111,7 +114,7 @@ export function ThemeMenu({ placement = "up", className }: { placement?: "up" | 
             </button>
           ))}
           <div className="-mx-1 my-1 border-t border-border" />
-          <button type="button" onClick={() => { choose("system"); setOpen(false); }}
+          <button type="button" onClick={(e) => { choose("system", e.currentTarget); setOpen(false); }}
             className={cx("flex h-8 w-full items-center gap-2.5 rounded-md px-2.5 text-left text-[13px] transition-colors hover:bg-muted", theme === "system" ? "font-medium text-fg" : "text-sub")}>
             <Monitor className="h-4 w-4" /><span className="flex-1">{t("system")}</span>
             {theme === "system" && <Check className="h-3.5 w-3.5 text-primary-strong" strokeWidth={2.5} />}

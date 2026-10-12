@@ -1,10 +1,11 @@
 "use client";
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Check, AlertCircle } from "lucide-react";
 import { translate, type DictKey, type Locale } from "@/lib/i18n";
 
 import { DARK_THEMES, THEMES, isTheme, resolveTheme, type Theme } from "@/lib/themes";
-interface Toast { id: number; text: string; kind: "ok" | "error" }
+import { useFlip } from "./motion";
+interface Toast { id: number; text: string; kind: "ok" | "error"; leaving?: boolean }
 interface Ctx {
   locale: Locale; setLocale: (l: Locale) => void;
   theme: Theme; setTheme: (t: Theme) => void;
@@ -52,8 +53,9 @@ export function Providers({ children, initialLocale = "zh" }: { children: ReactN
   const t = useCallback((k: DictKey | string, v?: Record<string, string | number>) => translate(locale, k, v), [locale]);
   const toast = useCallback((text: string, kind: "ok" | "error" = "ok") => {
     const id = Date.now() + Math.random();
-    setToasts((x) => [...x, { id, text, kind }]);
-    setTimeout(() => setToasts((x) => x.filter((y) => y.id !== id)), 3200);
+    setToasts((x) => [...x.slice(-3), { id, text, kind }]); // stack of ≤ 4
+    setTimeout(() => setToasts((x) => x.map((y) => (y.id === id ? { ...y, leaving: true } : y))), 3000);
+    setTimeout(() => setToasts((x) => x.filter((y) => y.id !== id)), 3200); // after the exit animation
   }, []);
   const err = useCallback((e: unknown) => {
     const code = (e as { code?: string }).code ?? (e instanceof Error ? e.message : "error");
@@ -62,13 +64,15 @@ export function Providers({ children, initialLocale = "zh" }: { children: ReactN
     toast(msg === key ? `${translate(locale, "error")} (${code})` : msg, "error");
   }, [locale, toast]);
 
+  const toastBox = useRef<HTMLDivElement>(null);
+  useFlip(toastBox, toasts.map((x) => x.id).join(",")); // remaining toasts glide into place
   const value = useMemo(() => ({ locale, setLocale, theme, setTheme, t, toast, err }), [locale, setLocale, theme, setTheme, t, toast, err]);
   return (
     <C.Provider value={value}>
       {children}
-      <div className="pointer-events-none fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] left-1/2 z-[100] w-max max-w-[92vw] md:bottom-6 flex -translate-x-1/2 flex-col items-center gap-2">
+      <div ref={toastBox} role="status" aria-live="polite" className="pointer-events-none fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] left-1/2 z-[100] w-max max-w-[92vw] md:bottom-6 flex -translate-x-1/2 flex-col items-center gap-2">
         {toasts.map((x) => (
-          <div key={x.id} className="pointer-events-auto flex animate-scale-in items-center gap-2.5 rounded-xl border border-border bg-elevated/95 py-2.5 pl-3 pr-4 text-[13.5px] text-fg shadow-pop backdrop-blur-xl">
+          <div key={x.id} data-flip={x.id} className={`pointer-events-auto flex ${x.leaving ? "animate-toast-out" : "animate-toast-in"} items-center gap-2.5 rounded-xl border border-border bg-elevated/95 py-2.5 pl-3 pr-4 text-[13.5px] text-fg shadow-pop backdrop-blur-xl`}>
             {x.kind === "error"
               ? <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-rose-500/15 text-danger"><AlertCircle className="h-3.5 w-3.5" /></span>
               : <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/15 text-success"><Check className="h-3.5 w-3.5" strokeWidth={2.5} /></span>}

@@ -1,0 +1,139 @@
+/* ═══════════════════════════ Motion system ═══════════════════════════
+   Quick, purposeful, physical (Linear / Vercel / Raycast / Stripe). Never decorative loops.
+
+   Tokens (mirrored in src/core/motion.ts — a test keeps them in sync)
+     --dur-fast  120ms  presses, hovers, toggles, focus
+     --dur-base  200ms  enter/exit of menus, toasts, sheets, segmented thumb
+     --dur-slow  320ms  cards, page content, emphasis, celebrations
+     --ease-standard    UI state changes                 cubic-bezier(0.2, 0, 0, 1)
+     --ease-emphasized  entrances (fast out, soft land)  cubic-bezier(0.16, 1, 0.3, 1)
+     --ease-exit        leaving the screen (accelerate)  cubic-bezier(0.4, 0, 1, 1)
+     --ease-spring      settle with slight overshoot     cubic-bezier(0.34, 1.36, 0.64, 1)
+
+   Tailwind: duration-fast|base|slow · ease-standard|emphasized|exit|spring ·
+             animate-page-in|pop-in|pop-out|sheet-in|sheet-out|overlay-in|overlay-out|toast-in|toast-out|grow-y|fade-in
+   Classes here: .m-press .m-stagger .m-collapse .m-indicator .m-skeleton .m-card-enter .m-card-return .m-flip-*
+
+   Rules
+     · Animate transform + opacity only (the one exception is .m-collapse's grid-rows for height).
+     · Reduced motion = html[data-motion="reduce"], set before paint by motionBootScript from
+       Settings → Motion ("system" follows prefers-reduced-motion). Everything below collapses to
+       opacity fades or no motion at all.                                                       */
+
+:root {
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 320ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --ease-spring: cubic-bezier(0.34, 1.36, 0.64, 1);
+}
+
+/* ─────────── Keyframes ─────────── */
+@keyframes m-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes m-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes m-rise { from { opacity: 0; transform: translate3d(0, 6px, 0); } to { opacity: 1; transform: none; } }
+@keyframes m-page-in { from { opacity: 0; transform: translate3d(0, 8px, 0); } to { opacity: 1; transform: none; } }
+@keyframes m-page-out { from { opacity: 1; } to { opacity: 0; transform: translate3d(0, -4px, 0); } }
+@keyframes m-pop-in { from { opacity: 0; transform: scale(0.96) translate3d(0, var(--m-pop-y, 4px), 0); } to { opacity: 1; transform: none; } }
+@keyframes m-pop-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: scale(0.97) translate3d(0, var(--m-pop-y, 4px), 0); } }
+@keyframes m-sheet-in { from { transform: translate3d(0, 100%, 0); } to { transform: none; } }
+@keyframes m-sheet-out { from { transform: translate3d(0, var(--m-sheet-from, 0px), 0); } to { transform: translate3d(0, 100%, 0); } }
+@keyframes m-drawer-out { from { transform: none; } to { transform: translate3d(-100%, 0, 0); } }
+@keyframes m-toast-in { from { opacity: 0; transform: translate3d(0, 12px, 0) scale(0.96); } to { opacity: 1; transform: none; } }
+@keyframes m-toast-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translate3d(0, 6px, 0) scale(0.97); } }
+@keyframes m-grow-y { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes m-grow-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes m-card-enter { from { opacity: 0; transform: translate3d(0, 14px, 0) scale(0.965); } to { opacity: 1; transform: none; } }
+@keyframes m-card-return {
+  from { opacity: 0; transform: translate3d(var(--from-x, 0px), var(--from-y, 0px), 0) rotate(var(--from-r, 0deg)); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes m-flip-out { from { transform: perspective(2000px) rotateY(0deg); } to { transform: perspective(2000px) rotateY(90deg) scale(0.985); } }
+@keyframes m-flip-in { from { transform: perspective(2000px) rotateY(-90deg) scale(0.985); } to { transform: perspective(2000px) rotateY(0deg); } }
+@keyframes m-pop { 0% { opacity: 0; transform: scale(0.6); } 60% { opacity: 1; transform: scale(1.06); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes m-shimmer { from { transform: translate3d(-100%, 0, 0); } to { transform: translate3d(100%, 0, 0); } }
+@keyframes m-glow { 0% { opacity: 0; transform: scale(0.7); } 40% { opacity: 1; } 100% { opacity: 0; transform: scale(1.35); } }
+
+/* ─────────── Utilities ─────────── */
+/* Press feedback for any clickable surface (Buttons already have it via ui.tsx). */
+.m-press { transition: transform var(--dur-fast) var(--ease-standard); }
+.m-press:active { transform: scale(0.97); }
+
+/* Stagger children in on first mount (cap at 10 so long lists settle in ≤ 300ms + 320ms). */
+.m-stagger > * { animation: m-rise var(--dur-slow) var(--ease-emphasized) both; }
+.m-stagger > :nth-child(2) { animation-delay: 30ms; }
+.m-stagger > :nth-child(3) { animation-delay: 60ms; }
+.m-stagger > :nth-child(4) { animation-delay: 90ms; }
+.m-stagger > :nth-child(5) { animation-delay: 120ms; }
+.m-stagger > :nth-child(6) { animation-delay: 150ms; }
+.m-stagger > :nth-child(7) { animation-delay: 180ms; }
+.m-stagger > :nth-child(8) { animation-delay: 210ms; }
+.m-stagger > :nth-child(9) { animation-delay: 240ms; }
+.m-stagger > :nth-child(10) { animation-delay: 270ms; }
+.m-stagger > :nth-child(n + 11) { animation-delay: 300ms; }
+
+/* Height expand/collapse without measuring (grid 0fr ↔ 1fr). Child must be a single wrapper. */
+.m-collapse { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows var(--dur-base) var(--ease-standard), opacity var(--dur-fast) var(--ease-standard); }
+.m-collapse[data-open="true"] { grid-template-rows: 1fr; opacity: 1; transition: grid-template-rows var(--dur-base) var(--ease-emphasized), opacity var(--dur-base) var(--ease-standard) 40ms; }
+.m-collapse > * { min-height: 0; overflow: hidden; }
+.m-collapse[data-open="true"] > * { overflow: visible; }
+
+/* Sliding active indicator (sidebar, rail, tab bar, segmented thumb). */
+.m-indicator { transition: transform var(--dur-slow) var(--ease-emphasized), width var(--dur-slow) var(--ease-emphasized), height var(--dur-slow) var(--ease-emphasized), opacity var(--dur-fast) linear; will-change: transform; }
+.m-indicator[data-ready="false"] { transition: none; }
+
+/* Skeleton with a GPU shimmer sweep (no background-position repaint). */
+.m-skeleton { position: relative; overflow: hidden; background: rgb(var(--muted)); border-radius: 0.5rem; }
+.m-skeleton::after { content: ""; position: absolute; inset: 0; transform: translate3d(-100%, 0, 0); background: linear-gradient(90deg, transparent, rgb(var(--surface) / 0.55), transparent); animation: m-shimmer 1.4s var(--ease-standard) infinite; }
+
+/* Study card */
+.m-card-enter { animation: m-card-enter var(--dur-slow) var(--ease-emphasized) both; }
+.m-card-return { animation: m-card-return var(--dur-slow) var(--ease-emphasized) both; }
+.m-flip-out { animation: m-flip-out var(--dur-fast) var(--ease-exit) both; backface-visibility: hidden; }
+.m-flip-in { animation: m-flip-in 240ms var(--ease-emphasized) both; backface-visibility: hidden; }
+.m-pop { animation: m-pop 460ms var(--ease-spring) both; }
+.m-glow { animation: m-glow 900ms var(--ease-emphasized) both; }
+
+/* Mobile drawer exit */
+.m-drawer-out { animation: m-drawer-out var(--dur-base) var(--ease-exit) both; }
+
+/* Drag & drop: lifted ghost + drop indicator line */
+.m-drag-ghost { box-shadow: var(--shadow-xl); transform: rotate(0.6deg); background: rgb(var(--elevated)); border-radius: 0.75rem; }
+.m-drop-line { animation: m-grow-x var(--dur-base) var(--ease-emphasized) both; }
+.m-drag-source { opacity: 0.4; transition: opacity var(--dur-fast) linear; }
+
+/* ─────────── View Transitions (routes + theme) ─────────── */
+::view-transition-group(*) { animation-duration: var(--dur-slow); animation-timing-function: var(--ease-emphasized); }
+html.vt-route .vt-main { view-transition-name: main; }
+html.vt-route .vt-ind-side { view-transition-name: nav-ind-side; }
+html.vt-route .vt-ind-rail { view-transition-name: nav-ind-rail; }
+html.vt-route .vt-ind-tab { view-transition-name: nav-ind-tab; }
+html.vt-route::view-transition-old(root), html.vt-route::view-transition-new(root) { animation: none; }
+html.vt-route::view-transition-old(main) { animation: m-page-out var(--dur-fast) var(--ease-exit) both; }
+html.vt-route::view-transition-new(main) { animation: m-page-in var(--dur-slow) var(--ease-emphasized) both; }
+html.vt-route::view-transition-group(main) { animation: none; }
+/* theme: circular reveal is driven from JS (element.animate on ::view-transition-new(root)) */
+html.vt-theme::view-transition-old(root), html.vt-theme::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+html.vt-theme::view-transition-old(root) { z-index: 1; }
+html.vt-theme::view-transition-new(root) { z-index: 2; }
+
+/* ─────────── Reduced motion ─────────── */
+/* No transforms, no loops; the few state changes that need a cue keep a short opacity fade. */
+html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-motion="reduce"] *::after {
+  animation-duration: 1ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important;
+  transition-duration: 1ms !important; transition-delay: 0ms !important; scroll-behavior: auto !important;
+}
+html[data-motion="reduce"] :is(.m-stagger > *, .m-card-enter, .m-card-return, .m-flip-in, .m-pop, .animate-rise-in, .animate-scale-in, .animate-card-in, .animate-reveal, .animate-page-in, .animate-pop-in, .animate-toast-in, .animate-sheet-in, .animate-overlay-in, .animate-fade-in, .animate-slide-in-left) {
+  animation: m-fade var(--dur-base) linear both !important;
+}
+html[data-motion="reduce"] :is(.animate-pop-out, .animate-toast-out, .animate-sheet-out, .animate-overlay-out, .m-drawer-out) { animation: m-fade-out var(--dur-fast) linear both !important; }
+html[data-motion="reduce"] :is(.m-flip-out, .m-glow, .animate-grow-y), html[data-motion="reduce"] .m-skeleton::after { animation: none !important; }
+html[data-motion="reduce"] .m-fade-ok { transition-property: opacity !important; transition-duration: var(--dur-base) !important; }
+html[data-motion="reduce"] .animate-spin { animation-duration: 1.2s !important; animation-iteration-count: infinite !important; }
+html[data-motion="reduce"]::view-transition-group(*), html[data-motion="reduce"]::view-transition-old(*), html[data-motion="reduce"]::view-transition-new(*) { animation: none !important; }
+/* No-JS fallback: honour the OS setting unless the user explicitly chose full motion. */
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-motion]) *, html:not([data-motion]) *::before, html:not([data-motion]) *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
+}

@@ -7,6 +7,22 @@ import type { Config } from "tailwindcss";
  */
 const v = (name: string) => `rgb(var(--${name}) / <alpha-value>)`;
 
+/* Motion tokens → utilities (duration-fast, ease-emphasized, animate-pop-in, …). Keyframes + docs: src/app/motion.css */
+const MOTION_DURATION = { fast: "var(--dur-fast)", base: "var(--dur-base)", slow: "var(--dur-slow)" };
+const MOTION_EASE = { standard: "var(--ease-standard)", emphasized: "var(--ease-emphasized)", exit: "var(--ease-exit)", spring: "var(--ease-spring)" };
+const MOTION_ANIMATION = {
+  "page-in": "m-page-in var(--dur-slow) var(--ease-emphasized) both",
+  "pop-in": "m-pop-in var(--dur-base) var(--ease-emphasized) backwards",
+  "pop-out": "m-pop-out var(--dur-fast) var(--ease-exit) both",
+  "sheet-in": "m-sheet-in var(--dur-slow) var(--ease-emphasized) backwards", // backwards: lets drag-to-dismiss transforms apply after entry
+  "sheet-out": "m-sheet-out var(--dur-base) var(--ease-exit) both",
+  "overlay-in": "m-fade var(--dur-base) var(--ease-standard) both",
+  "overlay-out": "m-fade-out var(--dur-base) var(--ease-exit) both",
+  "toast-in": "m-toast-in var(--dur-slow) var(--ease-spring) both",
+  "toast-out": "m-toast-out var(--dur-base) var(--ease-exit) both",
+  "grow-y": "m-grow-y var(--dur-slow) var(--ease-emphasized) both",
+};
+
 export default {
   darkMode: "class",
   content: ["./src/**/*.{ts,tsx}"],
@@ -44,13 +60,14 @@ export default {
         glow: "0 0 0 1px rgb(var(--primary) / 0.25), 0 8px 24px -6px rgb(var(--primary) / 0.45)",
       },
       borderRadius: { lg: "0.5rem", xl: "0.75rem", "2xl": "1rem", "3xl": "1.375rem" },
-      transitionTimingFunction: { out: "cubic-bezier(0.16, 1, 0.3, 1)" },
+      transitionTimingFunction: { out: "cubic-bezier(0.16, 1, 0.3, 1)", ...MOTION_EASE },
+      transitionDuration: MOTION_DURATION,
       keyframes: {
         "fade-in": { from: { opacity: "0" }, to: { opacity: "1" } },
         "rise-in": { from: { opacity: "0", transform: "translateY(6px)" }, to: { opacity: "1", transform: "none" } },
         "scale-in": { from: { opacity: "0", transform: "scale(.97) translateY(4px)" }, to: { opacity: "1", transform: "none" } },
         "card-in": { from: { opacity: "0", transform: "perspective(1200px) rotateX(6deg) translateY(14px) scale(.985)" }, to: { opacity: "1", transform: "none" } },
-        reveal: { from: { opacity: "0", transform: "translateY(8px)", filter: "blur(3px)" }, to: { opacity: "1", transform: "none", filter: "none" } },
+        reveal: { from: { opacity: "0", transform: "translateY(8px)" }, to: { opacity: "1", transform: "none" } }, // transform+opacity only (no blur repaint)
         "slide-in-left": { from: { transform: "translateX(-100%)" }, to: { transform: "none" } },
         shimmer: { from: { backgroundPosition: "-200% 0" }, to: { backgroundPosition: "200% 0" } },
       },
@@ -62,6 +79,7 @@ export default {
         reveal: "reveal .4s cubic-bezier(0.16,1,0.3,1) both",
         "slide-in-left": "slide-in-left .28s cubic-bezier(0.16,1,0.3,1) both",
         shimmer: "shimmer 1.6s linear infinite",
+        ...MOTION_ANIMATION,
       },
     },
   },

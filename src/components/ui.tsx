@@ -3,8 +3,10 @@
  * Shared UI primitives. Every page composes these; colors come only from the
  * design tokens (globals.css + tailwind.config.ts). No purple/indigo/violet.
  */
-import { forwardRef, useEffect, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
+import { forwardRef, useEffect, useRef, useState, type ButtonHTMLAttributes, type CSSProperties, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
 import { X, Loader2 } from "lucide-react";
+import { DURATION, rubberBand, sheetShouldDismiss, velocityFrom } from "@/core/motion";
+import { usePresence, useSlidingIndicator } from "./motion";
 
 export const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(" ");
 
@@ -24,7 +26,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLBut
   function Button({ variant = "secondary", size = "md", loading, className, children, disabled, ...rest }, ref) {
     return (
       <button ref={ref} disabled={disabled || loading}
-        className={cx("focus-ring inline-flex shrink-0 select-none items-center justify-center whitespace-nowrap font-medium tracking-[-0.005em] transition-[background-color,border-color,color,box-shadow,transform] duration-150 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50", BTN_VARIANT[variant], BTN_SIZE[size], className)} {...rest}>
+        className={cx("focus-ring inline-flex shrink-0 select-none items-center justify-center whitespace-nowrap font-medium tracking-[-0.005em] transition-[background-color,border-color,color,box-shadow,transform] duration-fast ease-standard active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50", BTN_VARIANT[variant], BTN_SIZE[size], className)} {...rest}>
         {loading && <Loader2 className="h-4 w-4 animate-spin" />}
         {children}
       </button>
@@ -34,7 +36,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLBut
 export function IconButton({ className, label, active, children, ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { label: string; active?: boolean }) {
   return (
     <button aria-label={label} title={label}
-      className={cx("focus-ring inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-[background-color,color,transform] duration-150 active:scale-95", active ? "bg-muted text-fg" : "text-sub hover:bg-muted hover:text-fg", "max-sm:h-11 max-sm:w-11", className)} {...rest}>
+      className={cx("focus-ring inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-[background-color,color,transform] duration-fast ease-standard active:scale-[0.94]", active ? "bg-muted text-fg" : "text-sub hover:bg-muted hover:text-fg", "max-sm:h-11 max-sm:w-11", className)} {...rest}>
       {children}
     </button>
   );
@@ -130,7 +132,7 @@ export function ProgressRing({ value, size = 28, stroke = 3, className, children
     <span className={cx("relative inline-flex shrink-0 items-center justify-center", className)} style={{ width: size, height: size }} title={title}>
       <svg width={size} height={size} className="-rotate-90">
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={stroke} className="stroke-muted" />
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={stroke} strokeLinecap="round" className="stroke-primary transition-[stroke-dashoffset] duration-700 ease-out"
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={stroke} strokeLinecap="round" className="stroke-primary transition-[stroke-dashoffset] duration-700 ease-emphasized"
           strokeDasharray={c} strokeDashoffset={c * (1 - v)} />
       </svg>
       {children && <span className="absolute inset-0 flex items-center justify-center">{children}</span>}
@@ -141,19 +143,24 @@ export function ProgressRing({ value, size = 28, stroke = 3, className, children
 export function ProgressBar({ value, className }: { value: number; className?: string }) {
   const v = Math.max(0, Math.min(1, value || 0));
   return (
-    <div className={cx("h-1.5 w-full overflow-hidden rounded-full bg-muted", className)}>
-      <div className="h-full rounded-full bg-gradient-to-r from-primary to-brand transition-[width] duration-500 ease-out" style={{ width: `${v * 100}%` }} />
+    <div className={cx("h-1.5 w-full overflow-hidden rounded-full bg-muted", className)} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(v * 100)}>
+      {/* transform-only fill (no width/layout animation) */}
+      <div className="h-full w-full rounded-full bg-gradient-to-r from-primary to-brand transition-transform duration-500 ease-emphasized will-change-transform" style={{ transform: `translate3d(${(v - 1) * 100}%, 0, 0)` }} />
     </div>
   );
 }
 
 /* ─────────── Segmented control ─────────── */
 export function Segmented<T extends string>({ value, onChange, options, className }: { value: T; onChange: (v: T) => void; options: { value: T; label: ReactNode }[]; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const thumb = useSlidingIndicator(ref, value, "both");
   return (
-    <div className={cx("inline-flex rounded-lg border border-border bg-muted/60 p-0.5", className)}>
+    <div ref={ref} role="radiogroup" className={cx("relative inline-flex rounded-lg border border-border bg-muted/60 p-0.5", className)}>
+      {/* sliding thumb (falls back to the per-button style until measured) */}
+      <span aria-hidden className="m-indicator pointer-events-none absolute left-0 top-0 rounded-md bg-surface shadow-xs ring-1 ring-border" data-ready={thumb.ready} style={thumb.style} />
       {options.map((o) => (
-        <button key={o.value} type="button" onClick={() => onChange(o.value)}
-          className={cx("h-10 flex-1 whitespace-nowrap rounded-md px-3 text-[13px] transition-all duration-150 sm:h-8 sm:flex-none", value === o.value ? "bg-surface font-medium text-fg shadow-xs ring-1 ring-border" : "text-sub hover:text-fg")}>
+        <button key={o.value} type="button" role="radio" aria-checked={value === o.value} data-active={value === o.value} onClick={() => onChange(o.value)}
+          className={cx("relative h-10 flex-1 whitespace-nowrap rounded-md px-3 text-[13px] transition-[color,transform] duration-fast ease-standard active:scale-[0.97] sm:h-8 sm:flex-none", value === o.value ? cx("font-medium text-fg", !thumb.visible && "bg-surface shadow-xs ring-1 ring-border") : "text-sub hover:text-fg")}>
           {o.label}
         </button>
       ))}
@@ -166,8 +173,8 @@ export function Toggle({ checked, onChange, label }: { checked: boolean; onChang
   return (
     <label className="inline-flex min-h-11 cursor-pointer items-center gap-2.5 text-[13.5px] text-fg sm:min-h-0">
       <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)}
-        className={cx("focus-ring relative h-5 w-9 shrink-0 rounded-full shadow-inner transition-colors duration-200", checked ? "bg-primary" : "bg-border-strong")}>
-        <span className={cx("absolute left-0 top-0.5 h-4 w-4 rounded-full bg-white shadow-[0_1px_3px_rgb(0_0_0/0.25)] transition-transform duration-200 ease-out", checked ? "translate-x-[18px]" : "translate-x-0.5")} />
+        className={cx("focus-ring group relative h-5 w-9 shrink-0 rounded-full shadow-inner transition-[background-color,transform] duration-base ease-standard active:scale-95", checked ? "bg-primary" : "bg-border-strong")}>
+        <span className={cx("absolute left-0 top-0.5 h-4 w-4 rounded-full bg-white shadow-[0_1px_3px_rgb(0_0_0/0.25)] transition-transform duration-base ease-spring", checked ? "translate-x-[18px]" : "translate-x-0.5")} />
       </button>
       {label}
     </label>
@@ -175,21 +182,52 @@ export function Toggle({ checked, onChange, label }: { checked: boolean; onChang
 }
 
 /* ─────────── Modal ─────────── */
+/** Desktop: scale + fade dialog. Phones: bottom sheet that slides up and can be dragged down to dismiss. */
 export function Modal({ open, onClose, title, children, footer, wide }: { open: boolean; onClose: () => void; title: ReactNode; children: ReactNode; footer?: ReactNode; wide?: boolean }) {
+  const { mounted, state } = usePresence(open, DURATION.base);
+  const panel = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ y0: number; samples: { x: number; t: number }[] } | null>(null);
+  const [dy, setDy] = useState(0);
+  const [dragging, setDragging] = useState(false);
   useEffect(() => {
     if (!open) return;
+    setDy(0);
     const h = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
   }, [open, onClose]);
-  if (!open) return null;
+  if (!mounted) return null;
+  const closing = state === "closed";
+  const onDown = (e: React.PointerEvent) => {
+    if (e.pointerType === "mouse" || !window.matchMedia("(max-width: 639px)").matches || (e.target as Element).closest("button")) return;
+    drag.current = { y0: e.clientY, samples: [{ x: e.clientY, t: e.timeStamp }] };
+    setDragging(true);
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const onMove = (e: React.PointerEvent) => {
+    const d = drag.current; if (!d) return;
+    const v = e.clientY - d.y0;
+    d.samples.push({ x: e.clientY, t: e.timeStamp }); if (d.samples.length > 8) d.samples.shift();
+    setDy(v >= 0 ? v : -rubberBand(-v, 32));
+  };
+  const onUp = () => {
+    const d = drag.current; drag.current = null; setDragging(false);
+    if (!d) return;
+    if (sheetShouldDismiss(dy, velocityFrom(d.samples), panel.current?.offsetHeight ?? 600)) onClose(); else setDy(0);
+  };
   return (
-    <div className="fixed inset-0 z-50 flex animate-fade-in items-end justify-center overflow-y-auto bg-zinc-950/40 backdrop-blur-sm sm:items-start sm:p-4 sm:pt-[10vh]" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={cx("max-h-[92dvh] w-full animate-rise-in overflow-y-auto rounded-t-3xl border border-border bg-elevated pb-[env(safe-area-inset-bottom)] shadow-hero sm:max-h-none sm:animate-scale-in sm:overflow-hidden sm:rounded-2xl sm:pb-0", wide ? "sm:max-w-3xl" : "sm:max-w-md")}>
-        <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-border-strong sm:hidden" />
-        <div className="flex items-center justify-between px-5 pb-1 pt-3 sm:pt-4">
-          <h2 className="text-[15px] font-semibold tracking-[-0.01em]">{title}</h2>
-          <IconButton label="close" onClick={onClose}><X className="h-4 w-4" /></IconButton>
+    <div className={cx("fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-zinc-950/40 backdrop-blur-sm sm:items-start sm:p-4 sm:pt-[10vh]", closing ? "pointer-events-none animate-overlay-out" : "animate-overlay-in")}
+      onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div ref={panel} role="dialog" aria-modal="true"
+        className={cx("max-h-[92dvh] w-full overflow-y-auto rounded-t-3xl border border-border bg-elevated pb-[env(safe-area-inset-bottom)] shadow-hero sm:max-h-none sm:overflow-hidden sm:rounded-2xl sm:pb-0",
+          closing ? "animate-sheet-out sm:animate-pop-out" : "animate-sheet-in sm:animate-pop-in", wide ? "sm:max-w-3xl" : "sm:max-w-md")}
+        style={{ "--m-sheet-from": `${dy}px`, transform: dy && !closing ? `translate3d(0, ${dy}px, 0)` : undefined, transition: dragging ? "none" : "transform var(--dur-slow) var(--ease-spring)" } as CSSProperties}>
+        <div className="touch-none sm:touch-auto" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
+          <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-border-strong sm:hidden" />
+          <div className="flex items-center justify-between px-5 pb-1 pt-3 sm:pt-4">
+            <h2 className="text-[15px] font-semibold tracking-[-0.01em]">{title}</h2>
+            <IconButton label="close" onClick={onClose}><X className="h-4 w-4" /></IconButton>
+          </div>
         </div>
         <div className="px-5 py-4">{children}</div>
         {footer && <div className="flex justify-end gap-2 border-t border-border bg-subtle px-5 py-3">{footer}</div>}
@@ -238,4 +276,41 @@ export function Kbd({ children, className }: { children: ReactNode; className?: 
 
 export function Loading() {
   return <div className="flex justify-center py-24"><Spinner /></div>;
+}
+
+/* ─────────── Skeletons (shimmer instead of spinners) ─────────── */
+export function Skeleton({ className, style }: { className?: string; style?: CSSProperties }) {
+  return <div aria-hidden className={cx("m-skeleton", className)} style={style} />;
+}
+
+/** Placeholder rows for a list/table card while data loads. */
+export function SkeletonList({ rows = 5, className }: { rows?: number; className?: string }) {
+  return (
+    <div role="status" aria-busy="true" className={cx("overflow-hidden rounded-2xl border border-border bg-surface shadow-card", className)}>
+      {Array.from({ length: rows }, (_, i) => (
+        <div key={i} className="flex h-14 items-center gap-3 border-t border-border/70 px-4 first:border-t-0">
+          <Skeleton className="h-5 w-5 rounded-full" />
+          <Skeleton className="h-3.5" style={{ width: `${38 + ((i * 17) % 30)}%` }} />
+          <span className="flex-1" />
+          <Skeleton className="h-5 w-9 rounded-full" /><Skeleton className="hidden h-5 w-9 rounded-full sm:block" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Placeholder stat tiles + a chart block. */
+export function SkeletonCards({ count = 4, chart = true, className }: { count?: number; chart?: boolean; className?: string }) {
+  return (
+    <div role="status" aria-busy="true" className={cx("space-y-4", className)}>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {Array.from({ length: count }, (_, i) => (
+          <div key={i} className="rounded-2xl border border-border bg-surface p-4 shadow-card sm:p-5">
+            <Skeleton className="h-3 w-24" /><Skeleton className="mt-4 h-7 w-16" /><Skeleton className="mt-3 h-2.5 w-28" />
+          </div>
+        ))}
+      </div>
+      {chart && <div className="rounded-2xl border border-border bg-surface p-5 shadow-card"><Skeleton className="h-3 w-32" /><Skeleton className="mt-5 h-40 w-full" /></div>}
+    </div>
+  );
 }
