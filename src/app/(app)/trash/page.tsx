@@ -16,7 +16,7 @@ export default function TrashPage() {
   const act = async (fn: () => Promise<unknown>) => { try { await fn(); await load(); } catch (e) { err(e); } };
   const topDecks = data?.decks.filter((d) => !data.decks.some((p) => p.id === d.parentId)) ?? [];
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-3xl xl:max-w-5xl">
       <PageHeader title={t("trashTitle")} />
       {!data ? <div className="flex justify-center py-16"><Spinner /></div> : !topDecks.length && !data.notes.length ? <Empty icon={<Trash2 />} title={t("trashEmpty")} /> : (
         <div className="space-y-6">

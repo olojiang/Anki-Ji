@@ -5,6 +5,18 @@ import { Badge, Pill, cx } from "@/components/ui";
 import { ti } from "@/lib/i18n-import";
 import type { ImportPreview as Preview } from "@/core/io/draft";
 
+/** On ≥xl the import cards split in two columns; the preview occupies the whole right column. */
+export const PREVIEW_SLOT = "xl:col-start-2 xl:row-start-1 xl:row-span-6 xl:mt-0";
+
+/** Empty right-hand slot shown on wide screens before anything has been parsed. */
+export function PreviewPlaceholder({ label }: { label: string }) {
+  return (
+    <div className={cx("hidden min-h-[240px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-subtle/60 text-center text-xs text-faint xl:flex", PREVIEW_SLOT)}>
+      <Eye className="h-5 w-5" />{label}
+    </div>
+  );
+}
+
 /** Preview of a parsed import (counts, decks, sample cards, issues) shown before committing. */
 export function ImportPreview({ preview: p, className }: { preview: Preview; className?: string }) {
   const { locale } = useApp();

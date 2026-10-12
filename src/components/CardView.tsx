@@ -43,7 +43,7 @@ export function CardView({ card, revealed, typed, onTyped, picked, onPick, onSub
           <Occlusion {...card.occlusion} revealed={revealed} />
         </div>
       ) : (
-        (!revealed || card.showFrontOnBack) && <Markdown text={card.front} className="text-[19px] font-medium tracking-[-0.01em] sm:text-[22px]" />
+        (!revealed || card.showFrontOnBack) && <Markdown text={card.front} className="text-[19px] font-medium tracking-[-0.01em] sm:text-[22px] xl:text-[24px] 2xl:text-[28px]" />
       )}
 
       {card.kind === "mcq" && (
@@ -84,7 +84,7 @@ export function CardView({ card, revealed, typed, onTyped, picked, onPick, onSub
       {revealed && (
         <div className="animate-reveal">
           {(card.showFrontOnBack || card.kind === "occlusion") && card.back && <div className="mx-auto my-7 flex max-w-xl items-center gap-3"><span className="h-px flex-1 bg-gradient-to-r from-transparent to-border" /><span className="h-1.5 w-1.5 rounded-full bg-primary/50" /><span className="h-px flex-1 bg-gradient-to-l from-transparent to-border" /></div>}
-          {card.back && <Markdown text={card.back} className={cx(card.showFrontOnBack || card.kind === "occlusion" ? "text-[17px] text-sub" : "text-[19px] sm:text-[22px]")} />}
+          {card.back && <Markdown text={card.back} className={cx(card.showFrontOnBack || card.kind === "occlusion" ? "text-[17px] text-sub 2xl:text-[20px]" : "text-[19px] sm:text-[22px] xl:text-[24px] 2xl:text-[28px]")} />}
         </div>
       )}
     </div>

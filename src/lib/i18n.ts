@@ -117,6 +117,8 @@ export const DICT = {
   sessionDone: ["本次已复习 {n} 张", "{n} reviewed this session"], remaining: ["剩余", "left"],
   less: ["少", "Less"], more_: ["多", "More"], peak: ["峰值", "Peak"], total: ["合计", "Total"],
   signedInAs: ["当前账号", "Signed in as"],
+  todayPlan: ["今日计划", "Today's plan"], studyNext: ["开始学习：{name}", "Study {name}"], next14: ["未来 14 天到期", "Due, next 14 days"], last20w: ["近 20 周", "Last 20 weeks"],
+  studiedMin: ["今日学习 {n} 分钟", "{n} min studied today"], openStats: ["查看统计", "Open stats"], cardPreview: ["卡片预览", "Card preview"], selectToPreview: ["选择一行以预览卡片", "Select a row to preview the card"], openEditor: ["编辑笔记", "Edit note"],
   tapHint: ["轻点卡片翻面", "Tap the card to flip"], swipeHint: ["右滑 良好 · 左滑 重来", "Swipe right: Good · left: Again"],
   themeHint: ["主题跟随账号保存，并在本设备即时生效", "Saved to your account and applied instantly on this device"],
   // errors

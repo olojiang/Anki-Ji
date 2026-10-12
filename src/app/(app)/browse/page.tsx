@@ -6,6 +6,7 @@ import { useApp } from "@/components/providers";
 import { api } from "@/lib/api";
 import { Badge, Button, Card, Empty, Input, Kbd, Modal, PageHeader, Pill, Segmented, Select, Spinner, cx } from "@/components/ui";
 import { DeckPicker } from "@/components/DeckPicker";
+import { BrowsePreview } from "@/components/BrowsePreview";
 import type { BrowseRowDTO, DeckDTO } from "@/lib/types";
 
 type Group = "none" | "deck" | "tag" | "type";
@@ -34,6 +35,7 @@ export default function BrowsePage() {
   const [moveDeck, setMoveDeck] = useState<number | null>(null);
   const [closed, setClosed] = useState<Set<string>>(new Set());
   const [dragNote, setDragNote] = useState<number | null>(null);
+  const [active, setActive] = useState<BrowseRowDTO | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
@@ -168,7 +170,8 @@ export default function BrowsePage() {
             </section>
           ))}
         </div>
-        <Card className="hidden overflow-hidden lg:block">
+        <div className="hidden lg:block xl:grid xl:grid-cols-[minmax(0,1fr)_380px] xl:items-start xl:gap-6 2xl:grid-cols-[minmax(0,1fr)_460px]">
+        <Card className="min-w-0 overflow-hidden">
           <div className="overflow-x-auto scrollbar-thin">
             <table className="w-full table-fixed text-left text-[13.5px]">
               <thead className="border-b border-border bg-subtle/80 text-[11px] uppercase tracking-[0.04em] text-faint">
@@ -201,7 +204,7 @@ export default function BrowsePage() {
                       const deckItems = items.filter((x) => x.deckId === r.deckId);
                       const idx = deckItems.findIndex((x) => x.noteId === r.noteId);
                       return (
-                        <tr key={`${g}-${key(r)}`} className={cx("group h-11 border-b border-border/70 transition-colors last:border-0 hover:bg-subtle", sel.has(key(r)) && "bg-primary/[0.06] hover:bg-primary/[0.08]", dragNote === r.noteId && "opacity-40")}
+                        <tr key={`${g}-${key(r)}`} className={cx("group h-11 border-b border-border/70 transition-colors last:border-0 hover:bg-subtle", sel.has(key(r)) && "bg-primary/[0.06] hover:bg-primary/[0.08]", active && key(active) === key(r) && "xl:bg-primary/[0.08] xl:shadow-[inset_3px_0_0_rgb(var(--primary))]", dragNote === r.noteId && "opacity-40")}
                           draggable={manual && mode === "notes"}
                           onDragStart={() => setDragNote(r.noteId)} onDragEnd={() => setDragNote(null)}
                           onDragOver={(e) => { if (dragNote && manual) e.preventDefault(); }}
@@ -216,7 +219,7 @@ export default function BrowsePage() {
                               </span>
                             </td>
                           )}
-                          <td className="cursor-pointer truncate px-2 py-2" onClick={() => router.push(`/notes/${r.noteId}`)}>
+                          <td className="cursor-pointer truncate px-2 py-2" onClick={() => { if (window.matchMedia("(min-width: 1280px)").matches) setActive(r); else router.push(`/notes/${r.noteId}`); }} onDoubleClick={() => router.push(`/notes/${r.noteId}`)}>
                             <div className="truncate font-medium text-fg transition-colors group-hover:text-primary">{r.sortField || "—"}</div>
                             {mode === "cards" && <div className="text-xs text-faint">#{r.type === "cloze" ? `c${r.ord}` : r.ord + 1}</div>}
                           </td>
@@ -235,6 +238,8 @@ export default function BrowsePage() {
             </table>
           </div>
         </Card>
+        <aside className="hidden xl:sticky xl:top-10 xl:block"><BrowsePreview row={active} onClose={() => setActive(null)} /></aside>
+        </div>
         </>
       )}
       {manual && rows && rows.length > 0 && <p className="mt-3 hidden text-xs text-faint lg:block">{t("dragRows")}</p>}

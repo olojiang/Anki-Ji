@@ -9,6 +9,7 @@ import type { ParsedImport } from "@/core/io/registry";
 import { FILE_ACCEPT, FILE_HINT, SELF_DECKED } from "@/core/io/formats";
 import { ImportPreview } from "@/components/io/ImportPreview";
 import { PasteImport } from "@/components/io/PasteImport";
+import { PREVIEW_SLOT, PreviewPlaceholder } from "@/components/io/ImportPreview";
 import { ti, importErrorMessage } from "@/lib/i18n-import";
 
 export default function IOPage() {
@@ -62,9 +63,9 @@ export default function IOPage() {
   };
 
   return (
-    <div className="max-w-4xl">
+    <div className="max-w-4xl xl:max-w-none">
       <PageHeader title={t("ioTitle")} />
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid items-start gap-4 lg:grid-cols-2 xl:grid-cols-[360px_minmax(0,1fr)] xl:gap-5 2xl:grid-cols-[400px_minmax(0,1fr)]">
         <Card className="p-5">
           <CardHeader className="mb-5" icon={<IconChip tone="sky"><Download /></IconChip>} title={t("exportTitle")} />
           <div className="space-y-4">
@@ -99,6 +100,7 @@ export default function IOPage() {
 
         <Card className="p-5">
           <CardHeader className="mb-5" icon={<IconChip tone="amber"><Upload /></IconChip>} title={t("importTitle")} description={ti(locale, "importDescAll")} />
+          <div className="xl:grid xl:grid-cols-2 xl:content-start xl:gap-x-6">
           <label className="group relative flex cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border border-dashed border-border-strong px-4 py-10 text-center transition-colors hover:border-primary/60 hover:bg-primary/[0.04]"
             onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); choose(e.dataTransfer.files[0] ?? null); }}>
             <IconChip tone="neutral" size="lg" className="mb-3 transition-transform group-hover:-translate-y-0.5"><Package /></IconChip>
@@ -106,7 +108,7 @@ export default function IOPage() {
             <span className="num mt-1 max-w-full break-words text-[11.5px] leading-relaxed text-faint">{FILE_HINT}</span>
             <input type="file" className="hidden" accept={FILE_ACCEPT} onChange={(e) => choose(e.target.files?.[0] ?? null)} />
           </label>
-          {parsed && <ImportPreview preview={parsed.preview} />}
+          {parsed ? <ImportPreview preview={parsed.preview} className={PREVIEW_SLOT} /> : <PreviewPlaceholder label={ti(locale, "previewTitle")} />}
           {parsed && !SELF_DECKED.includes(parsed.format) && <Field className="mt-3" label={ti(locale, "rootDeck")} hint={parsed.format === "csv" ? t("csvFormat") : ti(locale, "rootDeckHint")}><Input value={defaultDeck} onChange={(e) => { setDefaultDeck(e.target.value); setDeckTouched(true); }} onBlur={reparse} /></Field>}
           {file && /\.apkg$/i.test(file.name) && <p className="mt-3 text-xs text-faint">{t("apkgNote")}</p>}
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
@@ -114,6 +116,7 @@ export default function IOPage() {
             <Button variant="primary" disabled={!file || !!busy} loading={busy === "import"} onClick={run}><Upload className="h-4 w-4" />{t("startImport")}</Button>
           </div>
           {result && <p className="mt-3 flex animate-rise-in items-center gap-2 rounded-xl border border-success/25 bg-success/10 px-3 py-2 text-[13.5px] text-success"><CheckCircle2 className="h-4 w-4" />{result}</p>}
+          </div>
         </Card>
       </div>
       <PasteImport className="mt-4" />

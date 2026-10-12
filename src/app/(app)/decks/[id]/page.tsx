@@ -69,10 +69,10 @@ export default function DeckOptionsPage({ params }: { params: Promise<{ id: stri
   const wd = t("weekdays").split(",");
 
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-3xl xl:max-w-none">
       <PageHeader title={<span className="inline-flex items-center gap-2"><button onClick={() => router.push("/")} className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-sub hover:bg-muted sm:h-8 sm:w-8"><ArrowLeft className="h-4 w-4" /></button>{t("deckOptions")} · {deck.name}</span>}
         actions={<Button variant="primary" loading={busy} onClick={save}><Save className="h-4 w-4" />{t("save")}</Button>} />
-      <div className="space-y-4">
+      <div className="max-xl:space-y-4 xl:columns-2 xl:gap-5 [&>*]:break-inside-avoid xl:[&>*]:mb-5 xl:[&>*]:inline-block xl:[&>*]:w-full xl:[&>*]:align-top">
         {deck.filtered && filter && (
           <Section title={t("filteredDeck")} hint={t("filterExamples")}>
             <Field label={t("filterQuery")} className="sm:col-span-2"><Input value={filter.query} onChange={(e) => setFilter({ ...filter, query: e.target.value })} /></Field>
@@ -166,11 +166,11 @@ export default function DeckOptionsPage({ params }: { params: Promise<{ id: stri
           <Field label={t("reviewOrder")}><Select className="w-full" value={c.reviewOrder} onChange={(e) => set({ reviewOrder: e.target.value as DeckConfig["reviewOrder"] })}><option value="due">{t("revDue")}</option><option value="retrievability">{t("revRetr")}</option><option value="random">{t("revRandom")}</option></Select></Field>
           <Field label={t("mix")}><Select className="w-full" value={c.newReviewMix} onChange={(e) => set({ newReviewMix: e.target.value as DeckConfig["newReviewMix"] })}><option value="mix">{t("mixMix")}</option><option value="newFirst">{t("mixNewFirst")}</option><option value="reviewFirst">{t("mixReviewFirst")}</option></Select></Field>
         </Section>
-        <Card className="sticky bottom-[calc(5rem+env(safe-area-inset-bottom))] flex md:bottom-3 items-center justify-between gap-3 bg-elevated/90 p-3 pl-4 shadow-pop backdrop-blur-xl">
+      </div>
+        <Card className="sticky bottom-[calc(5rem+env(safe-area-inset-bottom))] mt-4 flex md:bottom-3 xl:mt-0 items-center justify-between gap-3 bg-elevated/90 p-3 pl-4 shadow-pop backdrop-blur-xl">
           <Toggle checked={applyChildren} onChange={setApplyChildren} label={t("applyToChildren")} />
           <Button variant="primary" loading={busy} onClick={save}><Save className="h-4 w-4" />{t("save")}</Button>
         </Card>
-      </div>
     </div>
   );
 }

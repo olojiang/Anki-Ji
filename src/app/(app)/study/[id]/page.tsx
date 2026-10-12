@@ -124,7 +124,7 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
   const stateTone = card?.state === "new" ? "sky" : card?.state === "review" ? "emerald" : "rose";
   const stateLabel = card?.state === "new" ? t("stNew") : card?.state === "review" ? t("stReview") : card?.state === "learning" ? t("stLearning") : t("stRelearning");
   return (
-    <div className={cx("mx-auto flex max-w-3xl flex-col md:min-h-[calc(100vh-8rem)]", card ? "min-h-[calc(100dvh-6rem)] pb-[calc(7.5rem+env(safe-area-inset-bottom))] md:pb-0" : "min-h-[calc(100dvh-8rem)]")}>
+    <div className={cx("mx-auto flex max-w-3xl flex-col md:min-h-[calc(100vh-8rem)] xl:max-w-4xl 2xl:max-w-5xl", card ? "min-h-[calc(100dvh-6rem)] pb-[calc(7.5rem+env(safe-area-inset-bottom))] md:pb-0" : "min-h-[calc(100dvh-8rem)]")}>
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <Link href="/" className={cx(tool, "text-sub hover:text-fg")} aria-label={t("back")}><ArrowLeft className="h-4 w-4" /></Link>
         <h1 className="min-w-[96px] flex-1 truncate text-[15px] font-semibold tracking-[-0.01em]">{st.deck.name}</h1>
@@ -170,7 +170,7 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
               <div className={cx("pointer-events-none absolute left-1/2 top-6 z-10 -translate-x-1/2 rounded-full px-3 py-1 text-[13px] font-semibold shadow-md ring-1 ring-inset", dx > 0 ? "bg-good/15 text-good ring-good/30" : "bg-again/15 text-again ring-again/30")}
                 style={{ opacity: Math.min(1, Math.abs(dx) / SWIPE) }}>{dx > 0 ? t("good") : t("again")}</div>
             )}
-            <Card key={card.cardId} className={cx("relative flex min-h-[52dvh] flex-1 animate-card-in flex-col rounded-3xl px-5 pb-10 pt-5 shadow-hero sm:px-12 sm:pb-14 md:min-h-0", !revealed && "cursor-pointer md:cursor-auto")}>
+            <Card key={card.cardId} className={cx("relative flex min-h-[52dvh] flex-1 animate-card-in flex-col rounded-3xl px-5 pb-10 pt-5 shadow-hero sm:px-12 sm:pb-14 md:min-h-0 2xl:px-16 2xl:pb-16", !revealed && "cursor-pointer md:cursor-auto")}>
               <div className="mb-6 flex items-center justify-between gap-2">
                 <Pill tone={stateTone} dot>{stateLabel}</Pill>
                 <span className="flex items-center gap-1.5">

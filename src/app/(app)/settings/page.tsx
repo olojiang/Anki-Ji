@@ -24,8 +24,9 @@ export default function SettingsPage() {
     } catch (e) { err(e); }
   };
   return (
-    <div className="max-w-3xl space-y-4">
+    <div className="max-w-3xl xl:max-w-none">
       <PageHeader title={t("settings")} />
+      <div className="max-xl:space-y-4 xl:columns-2 xl:gap-5 [&>*]:break-inside-avoid xl:[&>*]:mb-5 xl:[&>*]:inline-block xl:[&>*]:w-full xl:[&>*]:align-top">
       <Card className="space-y-5 p-5">
         <CardHeader icon={<IconChip tone="sky"><User /></IconChip>} title={t("account")} description={me.email} />
         <div className="grid gap-3 sm:grid-cols-2">
@@ -62,6 +63,7 @@ export default function SettingsPage() {
         <CardHeader icon={<IconChip tone="rose"><AlertTriangle /></IconChip>} title={<span className="text-danger">{t("dangerZone")}</span>} />
         <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-border bg-subtle px-4 py-3"><p className="text-[13.5px] text-sub">{t("deleteAccount")}</p><Button variant="danger" onClick={() => setDel(true)}>{t("delete")}</Button></div>
       </Card>
+      </div>
       <Modal open={del} onClose={() => setDel(false)} title={t("deleteAccount")}
         footer={<><Button variant="ghost" onClick={() => setDel(false)}>{t("cancel")}</Button><Button variant="danger" onClick={async () => { try { await api("/api/auth/account", { method: "DELETE", body: { password: delPw } }); window.location.href = "/register"; } catch (e) { err(e); } }}>{t("delete")}</Button></>}>
         <p className="mb-3 text-sm text-sub">{t("deleteAccountQ")}</p>

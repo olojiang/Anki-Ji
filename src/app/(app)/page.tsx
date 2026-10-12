@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import { Button, Card, Empty, Field, IconChip, Input, Modal, PageHeader, Pill, ProgressRing, Select, Spinner, cx, type Tone } from "@/components/ui";
 import { buildTree, type TreeNode } from "@/core/tree";
 import type { Counts, DeckDTO } from "@/lib/types";
+import { DeckDashboard, type DashStats } from "@/components/DeckDashboard";
 
 type Node = TreeNode<DeckDTO>;
 type DropZone = "before" | "after" | "inside";
@@ -17,7 +18,7 @@ export default function DecksPage() {
   const router = useRouter();
   const [decks, setDecks] = useState<DeckDTO[] | null>(null);
   const [counts, setCounts] = useState<Counts>({});
-  const [stats, setStats] = useState<{ today: { reviews: number }; streak: number } | null>(null);
+  const [stats, setStats] = useState<DashStats | null>(null);
   const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
   const [modal, setModal] = useState<null | { kind: "new"; parentId: number | null } | { kind: "rename"; deck: DeckDTO } | { kind: "filtered" }>(null);
   const [name, setName] = useState("");
@@ -33,7 +34,7 @@ export default function DecksPage() {
   }, [err]);
   useEffect(() => {
     load();
-    api<{ today: { reviews: number }; streak: number }>("/api/stats").then(setStats).catch(() => {});
+    api<DashStats>("/api/stats").then(setStats).catch(() => {});
     try { setCollapsed(new Set(JSON.parse(localStorage.getItem("ak-collapsed") ?? "[]"))); } catch { /* ignore */ }
   }, [load]);
   useEffect(() => {
@@ -44,6 +45,7 @@ export default function DecksPage() {
 
   const tree = useMemo(() => buildTree(decks ?? []), [decks]);
   const due = useMemo(() => tree.reduce((a, n) => { const c = counts[n.id]; return c ? { new: a.new + c.new, learning: a.learning + c.learning, review: a.review + c.review } : a; }, { new: 0, learning: 0, review: 0 }), [tree, counts]);
+  const nextDeck = useMemo(() => { const n = tree.find((x) => { const c = counts[x.id]; return c && c.new + c.learning + c.review > 0; }); return n ? { id: n.id, name: n.name } : null; }, [tree, counts]);
   const toggle = (id: number) => {
     const n = new Set(collapsed);
     if (n.has(id)) n.delete(id); else n.add(id);
@@ -162,6 +164,8 @@ export default function DecksPage() {
           <Button variant="primary" onClick={() => { setName(""); setModal({ kind: "new", parentId: null }); }}><Plus className="h-4 w-4" />{t("newDeck")}</Button>
         </>}
       />
+      <div className={cx(decks && decks.length > 0 && "xl:grid xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start xl:gap-6 2xl:grid-cols-[minmax(0,1fr)_400px] 2xl:gap-8")}>
+      <div className="min-w-0">
       {decks && decks.length > 0 && (
         <div className="mb-6 grid grid-cols-3 gap-2 sm:gap-3">
           <Card className="relative overflow-hidden p-3 sm:p-4">
@@ -199,6 +203,9 @@ export default function DecksPage() {
         </Card>
       )}
       {decks && decks.length > 1 && <p className="mt-3 hidden px-1 text-xs text-faint md:block">{t("dragHint")}</p>}
+      </div>
+      {decks && decks.length > 0 && <aside className="hidden xl:sticky xl:top-10 xl:block"><DeckDashboard due={due} next={nextDeck} stats={stats} /></aside>}
+      </div>
 
       <Modal open={!!modal} onClose={() => setModal(null)}
         title={modal?.kind === "rename" ? t("rename") : modal?.kind === "filtered" ? t("newFilteredDeck") : modal?.kind === "new" && modal.parentId ? t("newSubdeck") : t("newDeck")}

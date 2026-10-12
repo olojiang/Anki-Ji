@@ -7,7 +7,7 @@ import { importBackup, textToImport, withExisting } from "@/lib/transfer";
 import { ti, importErrorMessage } from "@/lib/i18n-import";
 import { PASTE_FORMATS, type PasteFormat } from "@/core/io/formats";
 import type { ParsedImport } from "@/core/io/registry";
-import { ImportPreview } from "./ImportPreview";
+import { ImportPreview, PREVIEW_SLOT, PreviewPlaceholder } from "./ImportPreview";
 
 /** Paste text → pick a preset (smart, Quizlet, SuperMemo, Markdown, RemNote, CSV) → preview → import. */
 export function PasteImport({ className }: { className?: string }) {
@@ -49,6 +49,7 @@ export function PasteImport({ className }: { className?: string }) {
   return (
     <Card className={cx("p-5", className)}>
       <CardHeader className="mb-5" icon={<IconChip tone="teal"><ClipboardPaste /></IconChip>} title={T("pasteTitle")} description={T("pasteDesc")} />
+      <div className="xl:grid xl:grid-cols-2 xl:content-start xl:gap-x-6">
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label={T("pasteFormat")}>
           <Select className="w-full" value={format} onChange={(e) => changed(() => setFormat(e.target.value as PasteFormat))}>
@@ -77,7 +78,7 @@ export function PasteImport({ className }: { className?: string }) {
         <Textarea rows={8} value={text} placeholder={T("pastePh")} onChange={(e) => changed(() => setText(e.target.value))} className="font-mono text-[13px]" />
         {format === "smart" && <p className="mt-1.5 text-xs leading-relaxed text-faint">{T("smartHint")}</p>}
       </div>
-      {parsed && <ImportPreview preview={parsed.preview} />}
+      {parsed ? <ImportPreview preview={parsed.preview} className={PREVIEW_SLOT} /> : <PreviewPlaceholder label={T("previewTitle")} />}
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <span className="min-w-0 truncate text-xs text-sub">{status && <span className="inline-flex items-center gap-1.5"><Loader2 className="h-3.5 w-3.5 animate-spin" />{status}</span>}</span>
         <div className="ml-auto flex gap-2">
@@ -86,6 +87,7 @@ export function PasteImport({ className }: { className?: string }) {
         </div>
       </div>
       {result && <p className="mt-3 flex animate-rise-in items-center gap-2 rounded-xl border border-success/25 bg-success/10 px-3 py-2 text-[13.5px] text-success"><CheckCircle2 className="h-4 w-4" />{result}</p>}
+      </div>
     </Card>
   );
 }

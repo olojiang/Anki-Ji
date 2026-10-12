@@ -51,7 +51,7 @@ export default function TagsPage() {
   );
 
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-3xl xl:max-w-5xl">
       <PageHeader title={t("tagsTitle")} subtitle={t("tagsPh")} />
       <form className="mb-4 flex gap-2" onSubmit={(e) => { e.preventDefault(); if (name.trim()) act(async () => { await api("/api/tags", { body: { name } }); setName(""); }); }}>
         <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="日语::N5" />
