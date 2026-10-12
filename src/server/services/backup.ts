@@ -33,7 +33,7 @@ export async function exportBackup(uid: number): Promise<Backup> {
     })),
     revlog: revlog as unknown as Record<string, unknown>[],
     media: media.map((m) => ({ id: Number(m.id), url: String(m.url), filename: String(m.filename), contentType: String(m.content_type), size: Number(m.size) })) as MediaRecord[],
-    noteTypes: (await listNoteTypes(uid)).map(({ noteCount: _n, ...t }) => ({ ...t, id: Number(t.id) })),
+    noteTypes: (await listNoteTypes(uid)).map((t) => ({ ...t, id: Number(t.id), noteCount: undefined })),
   });
 }
 
