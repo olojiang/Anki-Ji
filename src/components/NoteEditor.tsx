@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { Bold, Italic, Code, Sigma, ImagePlus, Music, Brackets, Eye, Plus, Trash2, Check, Upload, Eraser } from "lucide-react";
 import { useApp } from "./providers";
 import { uploadFile } from "@/lib/api";
@@ -11,8 +12,11 @@ import type { DeckDTO } from "@/lib/types";
 import { NOTE_TYPES, type NoteFields, type NoteType, type OcclusionMask } from "@/core/types";
 import { cardOrdinals, renderCard } from "@/core/notes";
 import { clozeOrdinals } from "@/core/cloze";
+import { api } from "@/lib/api";
+import { tn } from "@/lib/i18n-notetypes";
+import type { NoteTypeDef } from "@/core/notetypes";
 
-export interface NoteDraft { deckId: number | null; type: NoteType; fields: NoteFields; tags: string }
+export interface NoteDraft { deckId: number | null; type: NoteType; fields: NoteFields; tags: string; notetypeId?: number | null }
 
 export function emptyFields(type: NoteType): NoteFields {
   switch (type) {
@@ -20,11 +24,23 @@ export function emptyFields(type: NoteType): NoteFields {
     case "mcq": return { question: "", options: ["", "", "", ""], correct: [], explanation: "" };
     case "image_occlusion": return { image: "", masks: [], header: "", extra: "", occlusionMode: "hideOne" };
     case "basic_optional_reverse": return { front: "", back: "", addReverse: false };
+    case "custom": return { custom: {} };
     default: return { front: "", back: "" };
   }
 }
 
-function MdField({ label, value, onChange, rows = 4, cloze, autoFocus }: { label: string; value: string; onChange: (v: string) => void; rows?: number; cloze?: boolean; autoFocus?: boolean }) {
+/** The user's custom note types (fetched once per editor). */
+function useCustomNoteTypes(): NoteTypeDef[] | null {
+  const [list, setList] = useState<NoteTypeDef[] | null>(null);
+  useEffect(() => {
+    let live = true;
+    api<{ noteTypes: NoteTypeDef[] }>("/api/notetypes").then((r) => { if (live) setList(r.noteTypes.filter((x) => !x.readOnly)); }).catch(() => live && setList([]));
+    return () => { live = false; };
+  }, []);
+  return list;
+}
+
+function MdField({ label, value, onChange, rows = 4, cloze, autoFocus, rtl }: { label: string; value: string; onChange: (v: string) => void; rows?: number; cloze?: boolean; autoFocus?: boolean; rtl?: boolean }) {
   const { t, err } = useApp();
   const ref = useRef<HTMLTextAreaElement>(null);
   const [preview, setPreview] = useState(false);
@@ -80,7 +96,7 @@ function MdField({ label, value, onChange, rows = 4, cloze, autoFocus }: { label
       {preview ? (
         <div className="min-h-[88px] rounded-lg border border-border bg-muted/40 px-3 py-2"><Markdown text={value} /></div>
       ) : (
-        <Textarea ref={ref} rows={rows} value={value} autoFocus={autoFocus} disabled={busy}
+        <Textarea ref={ref} rows={rows} value={value} autoFocus={autoFocus} disabled={busy} dir={rtl ? "rtl" : undefined}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={(e) => { if (cloze && e.ctrlKey && e.shiftKey && (e.key === "C" || e.key === "c")) { e.preventDefault(); addCloze(); } }}
           onPaste={(e) => { const f = [...e.clipboardData.files][0]; if (f) { e.preventDefault(); upload(f); } }}
@@ -142,23 +158,46 @@ function OcclusionEditor({ fields, set }: { fields: NoteFields; set: (f: Partial
   );
 }
 
-export function NoteEditor({ decks, draft, setDraft, lockType }: { decks: DeckDTO[]; draft: NoteDraft; setDraft: (d: NoteDraft) => void; lockType?: boolean }) {
-  const { t } = useApp();
+export function NoteEditor({ decks, draft, setDraft, lockType, editing }: { decks: DeckDTO[]; draft: NoteDraft; setDraft: (d: NoteDraft) => void; lockType?: boolean; editing?: boolean }) {
+  const { t, locale } = useApp();
   const f = draft.fields;
   const set = (p: Partial<NoteFields>) => setDraft({ ...draft, fields: { ...f, ...p } });
-  const ords = useMemo(() => cardOrdinals(draft.type, f), [draft.type, f]);
+  const customTypes = useCustomNoteTypes();
+  const nt = draft.type === "custom" ? customTypes?.find((x) => x.id === draft.notetypeId) ?? null : null;
+  // a remembered custom type that no longer exists → fall back to Basic
+  useEffect(() => {
+    if (draft.type === "custom" && customTypes && !nt && !editing) setDraft({ ...draft, type: "basic", notetypeId: null, fields: emptyFields("basic") });
+  }, [draft, customTypes, nt, editing, setDraft]);
+  const setCustom = (id: string, v: string) => set({ custom: { ...(f.custom ?? {}), [id]: v } });
+  const ords = useMemo(() => cardOrdinals(draft.type, f, nt), [draft.type, f, nt]);
   const [previewOrd, setPreviewOrd] = useState(0);
   const [revealed, setRevealed] = useState(false);
   useEffect(() => { if (!ords.includes(previewOrd)) setPreviewOrd(ords[0] ?? 0); }, [ords, previewOrd]);
-  const rendered = ords.length ? renderCard(draft.type, f, ords.includes(previewOrd) ? previewOrd : ords[0]) : null;
+  const tags = parseTags(draft.tags);
+  const rendered = ords.length ? renderCard(draft.type, f, ords.includes(previewOrd) ? previewOrd : ords[0], nt, { tags, deck: decks.find((d) => d.id === draft.deckId)?.name ?? "" }) : null;
+  const typeValue = draft.type === "custom" ? `nt:${draft.notetypeId ?? ""}` : draft.type;
+  const pickType = (v: string) => {
+    if (v.startsWith("nt:")) { setDraft({ ...draft, type: "custom", notetypeId: Number(v.slice(3)), fields: { custom: carryCustom(f, customTypes?.find((x) => x.id === Number(v.slice(3)))) } }); return; }
+    const type = v as NoteType;
+    setDraft({ ...draft, type, notetypeId: null, fields: { ...emptyFields(type), ...carry(draft.type === "custom" ? fromCustom(f) : f, type) } });
+  };
+  const ordLabel = (o: number) => (draft.type === "cloze" || nt?.kind === "cloze" ? `c${o}` : nt ? nt.templates.find((x) => x.ord === o)?.name ?? String(o + 1) : String(o + 1));
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
       <div className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label={t("noteType")}>
-            <Select className="w-full" disabled={lockType} value={draft.type} onChange={(e) => { const type = e.target.value as NoteType; setDraft({ ...draft, type, fields: { ...emptyFields(type), ...carry(f, type) } }); }}>
-              {NOTE_TYPES.map((x) => <option key={x} value={x}>{t(`t_${x}`)}</option>)}
+          <Field label={<span className="flex items-center justify-between gap-2">{t("noteType")}<Link href="/notetypes" className="inline-flex min-h-6 items-center text-[12px] font-normal text-primary hover:underline">{tn(locale, "manage")}</Link></span>}>
+            <Select className="w-full" disabled={lockType || (editing && draft.type === "custom")} value={typeValue} onChange={(e) => pickType(e.target.value)}>
+              <optgroup label={tn(locale, "builtIn")}>
+                {NOTE_TYPES.map((x) => <option key={x} value={x}>{t(`t_${x}`)}</option>)}
+              </optgroup>
+              {!!customTypes?.length && !(editing && draft.type !== "custom") && (
+                <optgroup label={tn(locale, "custom")}>
+                  {customTypes.map((x) => <option key={x.id} value={`nt:${x.id}`}>{x.name}</option>)}
+                </optgroup>
+              )}
+              {draft.type === "custom" && !nt && <option value={typeValue}>…</option>}
             </Select>
           </Field>
           <Field label={t("deck")}><DeckPicker className="w-full" decks={decks} value={draft.deckId} onChange={(id) => setDraft({ ...draft, deckId: id })} /></Field>
@@ -169,6 +208,10 @@ export function NoteEditor({ decks, draft, setDraft, lockType }: { decks: DeckDT
           <MdField label={t("backSide")} value={f.back ?? ""} onChange={(v) => set({ back: v })} rows={draft.type === "type_in" ? 2 : 4} />
           {draft.type === "basic_optional_reverse" && <Toggle checked={!!f.addReverse} onChange={(v) => set({ addReverse: v })} label={t("addReverse")} />}
         </>}
+
+        {nt && nt.fields.map((x, i) => (
+          <MdField key={x.id} label={x.name} value={f.custom?.[x.id] ?? ""} onChange={(v) => setCustom(x.id, v)} rows={i === 0 ? 3 : 2} cloze={nt.kind === "cloze"} autoFocus={i === 0} rtl={x.rtl} />
+        ))}
 
         {draft.type === "cloze" && <>
           <MdField label={t("text")} value={f.text ?? ""} onChange={(v) => set({ text: v })} rows={5} cloze autoFocus />
@@ -214,7 +257,7 @@ export function NoteEditor({ decks, draft, setDraft, lockType }: { decks: DeckDT
         <div className="mb-2 flex items-center justify-between">
           <span className="text-[13px] font-medium text-sub">{t("preview")} · {ords.length} {ords.length === 1 ? "card" : "cards"}</span>
           <div className="flex items-center gap-1">
-            {ords.length > 1 && ords.map((o) => <button key={o} onClick={() => setPreviewOrd(o)} className={cx("h-10 min-w-10 rounded-md px-2 text-xs sm:h-7 sm:min-w-7", o === previewOrd ? "bg-primary text-primary-fg" : "text-sub hover:bg-muted")}>{draft.type === "cloze" ? `c${o}` : o + 1}</button>)}
+            {ords.length > 1 && ords.map((o) => <button key={o} onClick={() => setPreviewOrd(o)} className={cx("h-10 min-w-10 max-w-[9rem] truncate rounded-md px-2 text-xs sm:h-7 sm:min-w-7", o === previewOrd ? "bg-primary text-primary-fg" : "text-sub hover:bg-muted")}>{ordLabel(o)}</button>)}
             <Button size="sm" variant="ghost" onClick={() => setRevealed(!revealed)}>{revealed ? t("front") : t("showAnswer")}</Button>
           </div>
         </div>
@@ -225,6 +268,14 @@ export function NoteEditor({ decks, draft, setDraft, lockType }: { decks: DeckDT
     </div>
   );
 }
+
+/** Built-in fields → values of a custom type (first two fields get the main / secondary text). */
+function carryCustom(f: NoteFields, nt?: NoteTypeDef): Record<string, string> {
+  if (!nt) return {};
+  const src = f.custom ? Object.values(f.custom) : [f.front || f.text || f.question || "", f.back || f.extra || f.explanation || ""];
+  return Object.fromEntries(nt.fields.map((x, i) => [x.id, src[i] ?? ""]));
+}
+const fromCustom = (f: NoteFields): NoteFields => { const v = Object.values(f.custom ?? {}); return { front: v[0] ?? "", back: v[1] ?? "" }; };
 
 /** Keep content when switching types. */
 function carry(f: NoteFields, type: NoteType): NoteFields {

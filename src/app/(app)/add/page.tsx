@@ -7,9 +7,10 @@ import { Button, PageHeader, Spinner, Kbd } from "@/components/ui";
 import { NoteEditor, emptyFields, parseTags, type NoteDraft } from "@/components/NoteEditor";
 import type { DeckDTO } from "@/lib/types";
 import type { NoteType } from "@/core/types";
+import { noteTypeErrorMessage } from "@/lib/i18n-notetypes";
 
 export default function AddPage() {
-  const { t, err, toast } = useApp();
+  const { t, err, toast, locale } = useApp();
   const [decks, setDecks] = useState<DeckDTO[] | null>(null);
   const [draft, setDraft] = useState<NoteDraft>({ deckId: null, type: "basic", fields: emptyFields("basic"), tags: "" });
   const [busy, setBusy] = useState(false);
@@ -23,7 +24,8 @@ export default function AddPage() {
       const usable = r.decks.filter((d) => !d.filtered);
       const deckFromUrl = Number(new URLSearchParams(window.location.search).get("deck"));
       const deckId = usable.find((d) => d.id === deckFromUrl)?.id ?? usable.find((d) => d.id === last)?.id ?? usable[0]?.id ?? null;
-      setDraft((d) => ({ ...d, deckId, type, fields: emptyFields(type) }));
+      const notetypeId = type === "custom" ? Number(localStorage.getItem("ak-last-notetype")) || null : null;
+      setDraft((d) => ({ ...d, deckId, type, notetypeId, fields: emptyFields(type) }));
     }).catch(err);
   }, [err]);
 
@@ -31,13 +33,14 @@ export default function AddPage() {
     if (!draft.deckId) return;
     setBusy(true);
     try {
-      await api("/api/notes", { body: { deckId: draft.deckId, type: draft.type, fields: draft.fields, tags: parseTags(draft.tags) } });
+      await api("/api/notes", { body: { deckId: draft.deckId, type: draft.type, fields: draft.fields, tags: parseTags(draft.tags), notetypeId: draft.type === "custom" ? draft.notetypeId : null } });
       localStorage.setItem("ak-last-deck", String(draft.deckId));
       localStorage.setItem("ak-last-type", draft.type);
+      if (draft.type === "custom" && draft.notetypeId) localStorage.setItem("ak-last-notetype", String(draft.notetypeId));
       setCount((c) => c + 1);
       toast(t("added"));
       setDraft({ ...draft, fields: draft.type === "image_occlusion" ? emptyFields(draft.type) : emptyFields(draft.type) });
-    } catch (e) { err(e); } finally { setBusy(false); }
+    } catch (e) { const m = noteTypeErrorMessage(locale, e); if (m) toast(m, "error"); else err(e); } finally { setBusy(false); }
   };
 
   useEffect(() => {

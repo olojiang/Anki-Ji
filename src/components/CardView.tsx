@@ -5,12 +5,15 @@ import type { OcclusionMask } from "@/core/types";
 import { compareTyped } from "@/core/typed";
 import { useApp } from "./providers";
 import { Check, X } from "lucide-react";
+import { TemplateCard } from "./TemplateCard";
+import type { CustomRenderPayload } from "@/core/notetypes";
 
 export interface RenderedCardDTO {
-  kind: "plain" | "type" | "mcq" | "occlusion";
+  kind: "plain" | "type" | "mcq" | "occlusion" | "html";
   front: string; back: string; showFrontOnBack: boolean;
   typeAnswer?: string; options?: string[]; correct?: number[];
   occlusion?: { image: string; masks: OcclusionMask[]; active: number; mode: "hideOne" | "hideAll" };
+  css?: string; custom?: CustomRenderPayload; // kind "html": custom note type
 }
 
 export function Occlusion({ image, masks, active, mode, revealed }: { image: string; masks: OcclusionMask[]; active: number; mode: "hideOne" | "hideAll"; revealed: boolean }) {
@@ -35,6 +38,13 @@ export function CardView({ card, revealed, typed, onTyped, picked, onPick, onSub
 }) {
   const { t } = useApp();
   const multi = (card.correct?.length ?? 0) > 1;
+  if (card.kind === "html") {
+    const typeSlot = card.typeAnswer != null ? (rev: boolean) => (rev ? <TypedResult typed={typed ?? ""} expected={card.typeAnswer ?? ""} /> : (
+      <input autoFocus value={typed ?? ""} onChange={(e) => onTyped?.(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); onSubmitTyped?.(); } }}
+        placeholder={t("typeAnswerPh")} className="focus-ring h-12 w-full rounded-xl border border-border bg-subtle px-4 text-center font-mono text-base shadow-inner transition-colors focus:border-primary/60 focus:bg-surface" />
+    )) : undefined;
+    return <TemplateCard card={{ ...card, kind: "html" }} revealed={revealed} typeSlot={typeSlot} />;
+  }
   return (
     <div className="text-center">
       {card.kind === "occlusion" && card.occlusion ? (

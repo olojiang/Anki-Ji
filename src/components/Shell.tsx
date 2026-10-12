@@ -8,13 +8,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { Layers, Plus, Search, BarChart3, Tags, ArrowLeftRight, Trash2, Settings, LogOut, Languages, Menu, X, MoreHorizontal } from "lucide-react";
+import { Layers, Plus, Search, BarChart3, Tags, ArrowLeftRight, Trash2, Settings, LogOut, Languages, Menu, X, MoreHorizontal, LayoutTemplate } from "lucide-react";
 import { useApp } from "./providers";
 import { Logo, LogoMark } from "./AuthForm";
 import { api } from "@/lib/api";
 import { cx } from "./ui";
 import { ThemeMenu } from "./ThemePicker";
 import { isTheme } from "@/lib/themes";
+import { tn } from "@/lib/i18n-notetypes";
 
 export interface Me { id: number; email: string; name: string; settings: { timezone: string; rolloverHour: number; locale: "zh" | "en"; theme: string } }
 
@@ -50,6 +51,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const stats: NavItem = { href: "/stats", icon: BarChart3, label: t("navStats") };
   const secondary: NavItem[] = [
     { href: "/tags", icon: Tags, label: t("navTags") },
+    { href: "/notetypes", icon: LayoutTemplate, label: tn(locale, "navNoteTypes") },
     { href: "/io", icon: ArrowLeftRight, label: t("navIO") },
     { href: "/trash", icon: Trash2, label: t("navTrash") },
     { href: "/settings", icon: Settings, label: t("navSettings") },
