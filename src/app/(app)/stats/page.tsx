@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import { Flame, Clock, Target, Layers } from "lucide-react";
 import { useApp } from "@/components/providers";
 import { api } from "@/lib/api";
-import { Card, IconChip, PageHeader, ProgressRing, Spinner, cx, type Tone } from "@/components/ui";
+import { Card, IconChip, PageHeader, ProgressRing, SkeletonCards, cx, type Tone } from "@/components/ui";
+import { CountUp } from "@/components/motion";
 import { DeckPicker } from "@/components/DeckPicker";
 import { Bars, Heatmap, Legend } from "@/components/charts";
 import type { DeckDTO } from "@/lib/types";
@@ -15,7 +16,7 @@ interface Stats {
   retention: { actual: number | null; target: number; sample: number }; distribution: { new: number; learning: number; young: number; mature: number; suspended: number }; totalCards: number; totalReviews: number;
 }
 
-function Stat({ icon: Icon, label, value, sub, tone, extra }: { icon: typeof Flame; label: string; value: string; sub?: string; tone: Tone; extra?: React.ReactNode }) {
+function Stat({ icon: Icon, label, value, sub, tone, extra }: { icon: typeof Flame; label: string; value: React.ReactNode; sub?: string; tone: Tone; extra?: React.ReactNode }) {
   return (
     <Card className="p-4 sm:p-5">
       <div className="flex items-center gap-2.5 text-[12.5px] font-medium text-sub"><IconChip tone={tone} size="sm"><Icon /></IconChip><span className="truncate">{label}</span></div>
@@ -58,14 +59,14 @@ export default function StatsPage() {
           <button onClick={() => setDeckId(null)} className={cx("h-11 whitespace-nowrap rounded-lg px-3 text-[13px] sm:h-9 transition-colors", deckId == null ? "bg-surface font-medium text-fg shadow-xs ring-1 ring-border" : "text-sub hover:bg-muted hover:text-fg")}>{t("allDecks")}</button>
           <DeckPicker className="min-w-0 flex-1 sm:flex-none" decks={decks} value={deckId} onChange={setDeckId} placeholder={t("deck")} />
         </div>} />
-      {!s ? <div className="flex justify-center py-20"><Spinner /></div> : (
+      {!s ? <SkeletonCards /> : (
         <div className="animate-rise-in space-y-4">
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <Stat icon={Clock} tone="teal" label={t("reviewsToday")} value={String(s.today.reviews)} sub={`${s.today.minutes} ${t("minutes")} · ${t("again")} ${s.today.again}`} />
-            <Stat icon={Flame} tone="orange" label={t("streak")} value={String(s.streak)} sub={t("days")} />
-            <Stat icon={Target} tone="emerald" label={t("trueRetention")} value={s.retention.actual == null ? "—" : `${(s.retention.actual * 100).toFixed(1)}%`} sub={`${t("target")} ${(s.retention.target * 100).toFixed(0)}% · n=${s.retention.sample}`}
+          <div className="m-stagger grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <Stat icon={Clock} tone="teal" label={t("reviewsToday")} value={<CountUp value={s.today.reviews} />} sub={`${s.today.minutes} ${t("minutes")} · ${t("again")} ${s.today.again}`} />
+            <Stat icon={Flame} tone="orange" label={t("streak")} value={<CountUp value={s.streak} />} sub={t("days")} />
+            <Stat icon={Target} tone="emerald" label={t("trueRetention")} value={s.retention.actual == null ? "—" : <CountUp value={Math.round(s.retention.actual * 1000)} format={(n) => `${(n / 10).toFixed(1)}%`} />} sub={`${t("target")} ${(s.retention.target * 100).toFixed(0)}% · n=${s.retention.sample}`}
               extra={<ProgressRing value={s.retention.actual ?? 0} size={36} stroke={3.5} className="hidden sm:inline-flex" />} />
-            <Stat icon={Layers} tone="sky" label={t("totalCards")} value={String(s.totalCards)} sub={`${t("reps")} ${s.totalReviews}`} />
+            <Stat icon={Layers} tone="sky" label={t("totalCards")} value={<CountUp value={s.totalCards} />} sub={`${t("reps")} ${s.totalReviews}`} />
           </div>
           <div className="grid gap-4 xl:grid-cols-3">
           <ChartCard title={t("heatmap")} className="xl:col-span-2">

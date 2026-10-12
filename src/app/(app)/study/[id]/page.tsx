@@ -2,10 +2,10 @@
 import { use, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Undo2, PauseCircle, EyeOff, Flag, Pencil, PartyPopper, Clock, Info } from "lucide-react";
+import { ArrowLeft, Undo2, PauseCircle, EyeOff, Flag, Pencil, Info } from "lucide-react";
 import { useApp } from "@/components/providers";
 import { api } from "@/lib/api";
-import { Button, Card, Spinner, Kbd, Pill, ProgressBar, IconChip, cx } from "@/components/ui";
+import { Button, Card, Kbd, Pill, ProgressBar, Skeleton, cx } from "@/components/ui";
 import { CardView, type RenderedCardDTO } from "@/components/CardView";
 import { tm } from "@/lib/i18n-modes-batch";
 import { StudyVoice } from "@/components/tts/StudyVoice";
@@ -15,15 +15,17 @@ import { OfflineUnavailable } from "@/components/offline/OfflineDecks";
 import { to } from "@/lib/i18n-offline";
 import type { Rating } from "@/core/types";
 import { pingAutoOptimize } from "@/lib/push-client";
+import { CardStage, exitBarrier, useFlipReveal } from "@/components/study/CardStage";
+import { SessionComplete } from "@/components/study/SessionComplete";
 
 interface StudyCard extends RenderedCardDTO { cardId: number; noteId: number; deckId?: number; type: string; state: string; intervals: Record<string, string>; flag: number; leech: boolean; tags: string[]; retrievability: number | null; stability: number; difficulty: number; reps: number; lapses: number }
 interface StudyState { deck: { id: number; name: string; filtered: boolean }; counts: { new: number; learning: number; review: number }; card: StudyCard | null; nextLearningAt: string | null }
 
 const RATING = [
-  { r: 1, key: "again", text: "text-again", dot: "bg-again", cls: "hover:border-again/45 hover:bg-again/[0.06] hover:shadow-[0_8px_24px_-10px_rgb(var(--again)/0.5)]" },
-  { r: 2, key: "hard", text: "text-hard", dot: "bg-hard", cls: "hover:border-hard/45 hover:bg-hard/[0.06] hover:shadow-[0_8px_24px_-10px_rgb(var(--hard)/0.5)]" },
-  { r: 3, key: "good", text: "text-good", dot: "bg-good", cls: "hover:border-good/45 hover:bg-good/[0.06] hover:shadow-[0_8px_24px_-10px_rgb(var(--good)/0.5)]" },
-  { r: 4, key: "easy", text: "text-easy", dot: "bg-easy", cls: "hover:border-easy/45 hover:bg-easy/[0.06] hover:shadow-[0_8px_24px_-10px_rgb(var(--easy)/0.5)]" },
+  { r: 1, key: "again", text: "text-again", dot: "bg-again", cls: "hover:border-again/45 hover:bg-again/[0.06] hover:shadow-[0_8px_24px_-10px_rgb(var(--again)/0.5)]", on: "border-again/50 bg-again/[0.08]" },
+  { r: 2, key: "hard", text: "text-hard", dot: "bg-hard", cls: "hover:border-hard/45 hover:bg-hard/[0.06] hover:shadow-[0_8px_24px_-10px_rgb(var(--hard)/0.5)]", on: "border-hard/50 bg-hard/[0.08]" },
+  { r: 3, key: "good", text: "text-good", dot: "bg-good", cls: "hover:border-good/45 hover:bg-good/[0.06] hover:shadow-[0_8px_24px_-10px_rgb(var(--good)/0.5)]", on: "border-good/50 bg-good/[0.08]" },
+  { r: 4, key: "easy", text: "text-easy", dot: "bg-easy", cls: "hover:border-easy/45 hover:bg-easy/[0.06] hover:shadow-[0_8px_24px_-10px_rgb(var(--easy)/0.5)]", on: "border-easy/50 bg-easy/[0.08]" },
 ];
 
 export default function StudyPage({ params }: { params: Promise<{ id: string }> }) {
@@ -40,15 +42,28 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
   const [busy, setBusy] = useState(false);
   const [info, setInfo] = useState(false);
   const [done, setDone] = useState(0);
-  const [dx, setDx] = useState(0);
-  const touch = useRef<{ x: number; y: number; t: number; lock: "h" | "v" | null } | null>(null);
   const shownAt = useRef(Date.now());
+  // motion: exit-by-rating, enter (stack / undo-return), 3D flip on reveal, pressed rating feedback
+  const [exit, setExit] = useState<number | null>(null);
+  const [seq, setSeq] = useState(0);
+  const [enterFrom, setEnterFrom] = useState<number | null>(null);
+  const [pressed, setPressed] = useState<number | null>(null);
+  const rated = useRef<number[]>([]);
+  const exitDone = useRef<(() => void) | null>(null);
+  const flip = useFlipReveal();
 
-  const apply = useCallback((s: StudyState | null) => {
+  const apply = useCallback((s: StudyState | null, from: number | null = null) => {
     if (!s) return;
+    flip.reset();
     setSt(s); setRevealed(false); setTyped(""); setPicked([]); shownAt.current = Date.now();
-  }, []);
-  useEffect(() => { loadStudy().then(apply).catch((e) => (e?.code === "offline_unavailable" ? setUnavailable(true) : err(e))); }, [loadStudy, apply, err]);
+    setExit(null); setEnterFrom(from); setSeq((n) => n + 1);
+  }, [flip.reset]);
+  const reveal = useCallback(() => {
+    if (revealed || flip.phase) return;
+    const k = st?.card?.kind;
+    flip.reveal(() => setRevealed(true), k === "plain" || k === "occlusion");
+  }, [revealed, st, flip]);
+  useEffect(() => { loadStudy().then((s) => apply(s)).catch((e) => (e?.code === "offline_unavailable" ? setUnavailable(true) : err(e))); }, [loadStudy, apply, err]);
   useEffect(() => { if (st && !st.card && done > 0 && !offlineMode) pingAutoOptimize(); }, [st, done, offlineMode]); // session finished → lazy FSRS auto-optimize check
   // refresh when learning cards become due
   useEffect(() => {
@@ -61,17 +76,22 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
 
   const rate = useCallback(async (rating: number) => {
     if (!st?.card || busy) return;
-    setBusy(true);
+    setBusy(true); setExit(rating); setPressed(rating);
     try {
-      const r = await answerStudy(st.card.cardId, rating as Rating, Date.now() - shownAt.current);
+      // the exit animation runs in parallel with the request (online or offline source); the next card enters when both are done
+      const [r] = await Promise.all([
+        answerStudy(st.card.cardId, rating as Rating, Date.now() - shownAt.current),
+        exitBarrier(exitDone),
+      ]);
       if (r.leech) toast(t("leechNotice"), "error");
+      rated.current.push(rating);
       setDone((d) => d + 1);
       apply(r.next);
-    } catch (e) { err(e); } finally { setBusy(false); }
+    } catch (e) { setExit(null); err(e); } finally { setBusy(false); setPressed(null); }
   }, [st, busy, answerStudy, apply, err, toast, t]);
 
   const undo = useCallback(async () => {
-    try { const r = await undoStudy(); if (r.undone) { apply(r.next); setDone((d) => Math.max(0, d - 1)); } } catch (e) { err(e); }
+    try { const r = await undoStudy(); if (r.undone) { apply(r.next, rated.current.pop() ?? null); setDone((d) => Math.max(0, d - 1)); } } catch (e) { err(e); }
   }, [undoStudy, apply, err]);
 
   const action = useCallback(async (a: "suspend" | "bury" | "buryNote" | "flag") => {
@@ -89,7 +109,7 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA") return;
       if (!st?.card) return;
-      if (e.key === " " || e.key === "Enter") { e.preventDefault(); if (!revealed) setRevealed(true); else rate(3); return; }
+      if (e.key === " " || e.key === "Enter") { e.preventDefault(); if (!revealed) reveal(); else rate(3); return; }
       if (revealed && ["1", "2", "3", "4"].includes(e.key)) { rate(Number(e.key)); return; }
       if (!revealed && st.card.kind === "mcq" && /^[a-h]$/i.test(e.key) && !e.metaKey && !e.ctrlKey) {
         const i = e.key.toLowerCase().charCodeAt(0) - 97;
@@ -112,26 +132,18 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
     setPicked((p) => (multi ? (p.includes(i) ? p.filter((x) => x !== i) : [...p, i]) : [i]));
   };
 
-  if (!st) return unavailable ? <OfflineUnavailable /> : <div className="flex justify-center py-24"><Spinner /></div>;
+  if (!st) return unavailable ? <OfflineUnavailable /> : (
+    <div className="mx-auto max-w-3xl xl:max-w-4xl" role="status" aria-busy="true">
+      <div className="mb-3 flex items-center gap-2"><Skeleton className="h-8 w-8" /><Skeleton className="h-4 w-40" /><span className="flex-1" /><Skeleton className="h-8 w-32" /></div>
+      <Skeleton className="mb-6 h-1.5 w-full rounded-full" />
+      <Skeleton className="h-[52dvh] w-full rounded-3xl md:h-[420px]" />
+    </div>
+  );
   const c = st.counts;
   const card = st.card;
   const remaining = c.new + c.learning + c.review;
-  const SWIPE = 90;
   const interactive = (el: EventTarget | null) => el instanceof Element && !!el.closest("button,a,input,textarea,select,audio,video,label,iframe,summary");
-  const onCardClick = (e: React.MouseEvent) => { if (!revealed && !interactive(e.target)) setRevealed(true); };
-  const onTouchStart = (e: React.TouchEvent) => { if (!revealed || interactive(e.target)) return; const p = e.touches[0]; touch.current = { x: p.clientX, y: p.clientY, t: Date.now(), lock: null }; };
-  const onTouchMove = (e: React.TouchEvent) => {
-    const s0 = touch.current; if (!s0) return;
-    const p = e.touches[0]; const ddx = p.clientX - s0.x, ddy = p.clientY - s0.y;
-    if (!s0.lock) { if (Math.abs(ddx) < 8 && Math.abs(ddy) < 8) return; s0.lock = Math.abs(ddx) > Math.abs(ddy) ? "h" : "v"; }
-    if (s0.lock === "h") setDx(ddx);
-  };
-  const onTouchEnd = () => {
-    const s0 = touch.current; touch.current = null;
-    if (!s0 || s0.lock !== "h") { setDx(0); return; }
-    const d = dx; setDx(0);
-    if (d > SWIPE) rate(3); else if (d < -SWIPE) rate(1);
-  };
+  const onCardClick = (e: React.MouseEvent) => { if (!revealed && !interactive(e.target)) reveal(); };
   const tool = "inline-flex h-10 w-10 sm:h-8 sm:w-8 items-center justify-center rounded-lg transition-[background-color,color,transform] duration-150 hover:bg-muted active:scale-95";
   const stateTone = card?.state === "new" ? "sky" : card?.state === "review" ? "emerald" : "rose";
   const stateLabel = card?.state === "new" ? t("stNew") : card?.state === "review" ? t("stReview") : card?.state === "learning" ? t("stLearning") : t("stRelearning");
@@ -164,27 +176,24 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
       </div>
 
       {!card ? (
-        <Card className="relative flex flex-1 animate-card-in flex-col items-center justify-center overflow-hidden px-6 py-20 text-center">
+        <Card key={seq} className="relative flex flex-1 animate-card-in flex-col items-center justify-center overflow-hidden px-6 py-20 text-center">
           <div className="bg-grid mask-radial pointer-events-none absolute inset-0" />
           <div className="pointer-events-none absolute left-1/2 top-1/3 h-56 w-56 -translate-x-1/2 rounded-full bg-primary/15 blur-3xl" />
-          <IconChip tone={st.nextLearningAt ? "amber" : "primary"} size="lg" className="relative mb-5 h-14 w-14 rounded-2xl shadow-md [&>svg]:h-7 [&>svg]:w-7">{st.nextLearningAt ? <Clock /> : <PartyPopper />}</IconChip>
-          <p className="relative text-[20px] font-semibold tracking-[-0.02em]">{t("congrats")}</p>
-          {done > 0 && <p className="relative mt-2 text-[13.5px] text-sub">{t("sessionDone", { n: done })}</p>}
-          {st.nextLearningAt && <p className="relative mt-2 text-[13.5px] text-sub">{t("comeBack", { t: relTime(st.nextLearningAt) })}</p>}
-          <div className="relative mt-7 flex flex-wrap justify-center gap-2"><Button onClick={undo}><Undo2 className="h-4 w-4" />{t("undo")}</Button><Link href={`/modes?deck=${deckId}`}><Button>{tm(locale, "modes")}</Button></Link><Link href="/"><Button variant="primary">{t("backToDecks")}</Button></Link></div>
+          <SessionComplete done={done} waiting={!!st.nextLearningAt}>
+            <p className="relative text-[20px] font-semibold tracking-[-0.02em]">{t("congrats")}</p>
+            {done > 0 && <p className="relative mt-2 text-[13.5px] text-sub">{t("sessionDone", { n: done })}</p>}
+            {st.nextLearningAt && <p className="relative mt-2 text-[13.5px] text-sub">{t("comeBack", { t: relTime(st.nextLearningAt) })}</p>}
+            <div className="relative mt-7 flex flex-wrap justify-center gap-2"><Button onClick={undo}><Undo2 className="h-4 w-4" />{t("undo")}</Button><Link href={`/modes?deck=${deckId}`}><Button>{tm(locale, "modes")}</Button></Link><Link href="/"><Button variant="primary">{t("backToDecks")}</Button></Link></div>
+          </SessionComplete>
         </Card>
       ) : (
         <>
           <div className="relative flex flex-1 flex-col">
             <div className="pointer-events-none absolute inset-x-8 -bottom-3 top-6 rounded-3xl border border-border/70 bg-surface/50 shadow-xs" />
             <div className="pointer-events-none absolute inset-x-4 -bottom-1.5 top-3 rounded-3xl border border-border/80 bg-surface/80 shadow-xs" />
-            <div className="relative flex flex-1 flex-col" onClick={onCardClick} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onTouchCancel={onTouchEnd}
-              style={{ transform: dx ? `translateX(${dx}px) rotate(${dx / 36}deg)` : undefined, transition: dx ? "none" : "transform .25s cubic-bezier(0.16,1,0.3,1)", touchAction: revealed ? "pan-y" : "auto" }}>
-            {dx !== 0 && (
-              <div className={cx("pointer-events-none absolute left-1/2 top-6 z-10 -translate-x-1/2 rounded-full px-3 py-1 text-[13px] font-semibold shadow-md ring-1 ring-inset", dx > 0 ? "bg-good/15 text-good ring-good/30" : "bg-again/15 text-again ring-again/30")}
-                style={{ opacity: Math.min(1, Math.abs(dx) / SWIPE) }}>{dx > 0 ? t("good") : t("again")}</div>
-            )}
-            <Card key={card.cardId} className={cx("relative flex min-h-[52dvh] flex-1 animate-card-in flex-col rounded-3xl px-5 pb-10 pt-5 shadow-hero sm:px-12 sm:pb-14 md:min-h-0 2xl:px-16 2xl:pb-16", !revealed && "cursor-pointer md:cursor-auto")}>
+            <CardStage enterKey={seq} enterFrom={enterFrom} exitRating={exit} swipeEnabled={revealed && !busy} onClick={onCardClick} onCommit={rate} onExitEnd={() => exitDone.current?.()}
+              labels={{ 1: t("again"), 2: t("hard"), 3: t("good"), 4: t("easy") }}>
+            <Card className={cx("relative flex min-h-[52dvh] flex-1 flex-col rounded-3xl px-5 pb-10 pt-5 shadow-hero sm:px-12 sm:pb-14 md:min-h-0 2xl:px-16 2xl:pb-16", !revealed && "cursor-pointer md:cursor-auto", flip.flipClass)} onAnimationEnd={flip.onAnimationEnd}>
               <div className="mb-6 flex items-center justify-between gap-2">
                 <Pill tone={stateTone} dot>{stateLabel}</Pill>
                 <span className="flex items-center gap-1.5">
@@ -204,20 +213,21 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
                 </div>
               )}
               <div className="my-auto">
-                <CardView card={card} revealed={revealed} typed={typed} onTyped={setTyped} onSubmitTyped={() => setRevealed(true)} picked={picked} onPick={pick} />
+                <CardView card={card} revealed={revealed} typed={typed} onTyped={setTyped} onSubmitTyped={reveal} picked={picked} onPick={pick} />
               </div>
               <p className="mt-8 text-center text-[11.5px] text-faint md:hidden">{revealed ? t("swipeHint") : t("tapHint")}</p>
             </Card>
-            </div>
+            </CardStage>
           </div>
           <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-elevated/95 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-xl md:sticky md:inset-auto md:z-auto md:mt-6 md:border-0 md:bg-transparent md:bg-gradient-to-t md:from-bg md:via-bg/95 md:to-transparent md:px-0 md:pb-3 md:backdrop-blur-none">
             {!revealed ? (
-              <Button variant="primary" size="lg" className="h-14 w-full text-[16px] md:h-12 md:text-[15px]" onClick={() => setRevealed(true)}>{t("showAnswer")} <span className="ml-1 hidden md:inline-flex"><Kbd>Space</Kbd></span></Button>
+              <Button variant="primary" size="lg" className="h-14 w-full text-[16px] md:h-12 md:text-[15px]" onClick={reveal}>{t("showAnswer")} <span className="ml-1 hidden md:inline-flex"><Kbd>Space</Kbd></span></Button>
             ) : (
               <div className="grid animate-rise-in grid-cols-4 gap-2 sm:gap-3">
                 {RATING.map((b) => (
-                  <button key={b.r} disabled={busy} onClick={() => rate(b.r)}
-                    className={cx("focus-ring group flex min-h-[64px] flex-col items-center justify-center rounded-2xl border border-border bg-surface px-1 py-2.5 shadow-card md:min-h-0 md:rounded-xl transition-all duration-150 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.97] disabled:opacity-50 sm:py-3", b.cls)}>
+                  <button key={b.r} disabled={busy} onClick={() => rate(b.r)} data-pressed={pressed === b.r || undefined}
+                    className={cx("focus-ring group flex min-h-[64px] flex-col items-center justify-center rounded-2xl border border-border bg-surface px-1 py-2.5 shadow-card md:min-h-0 md:rounded-xl transition-[transform,background-color,border-color,box-shadow,opacity] duration-fast ease-standard hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.97] sm:py-3", b.cls,
+                      pressed === b.r ? cx("scale-[0.97] !opacity-100", b.on) : "disabled:opacity-50")}>
                     <span className="num text-[11.5px] text-faint">{card.intervals[String(b.r)]}</span>
                     <span className={cx("mt-0.5 inline-flex items-center gap-1.5 text-[16px] font-semibold md:text-[14.5px]", b.text)}><span className={cx("hidden h-1.5 w-1.5 rounded-full sm:inline-block", b.dot)} />{t(b.key)}</span>
                     <span className="mt-1.5 hidden text-faint md:block"><Kbd>{b.r}</Kbd></span>

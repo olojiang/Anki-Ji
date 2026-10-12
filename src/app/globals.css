@@ -270,9 +270,7 @@ input[type="range"] { accent-color: rgb(var(--primary)); }
 .text-gradient { background: linear-gradient(180deg, rgb(var(--fg)) 30%, rgb(var(--fg) / 0.62)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .skeleton { background: linear-gradient(90deg, rgb(var(--muted)) 25%, rgb(var(--subtle)) 50%, rgb(var(--muted)) 75%); background-size: 200% 100%; @apply animate-shimmer rounded-md; }
 
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
-}
+/* Reduced motion (OS setting + in-app "Reduce motion") lives in motion.css */
 
 /* Card content (rendered markdown) */
 .prose-card { line-height: 1.7; word-break: break-word; overflow-wrap: anywhere; }

@@ -20,6 +20,9 @@ import { isTheme } from "@/lib/themes";
 import { tn } from "@/lib/i18n-notetypes";
 import { OfflineAgent } from "./offline/OfflineAgent";
 import { SyncStatus } from "./offline/SyncStatus";
+import { SlidingNav, useTransitionNav } from "./nav-motion";
+import { isVTNavigating, resolvePendingNavigation, usePresence } from "./motion";
+import { indicatorOffset } from "@/core/motion";
 
 export interface Me { id: number; email: string; name: string; settings: { timezone: string; rolloverHour: number; locale: "zh" | "en"; theme: string } }
 
@@ -40,6 +43,9 @@ export function Shell({ children }: { children: ReactNode }) {
     }).catch(() => {});
   }, [setTheme]);
   useEffect(() => setOpen(false), [path]);
+  useEffect(() => resolvePendingNavigation(), [path]); // new route rendered → let the view transition run
+  const go = useTransitionNav();
+  const drawer = usePresence(open, 200);
   // hide the bottom tab bar while the on-screen keyboard is likely open
   useEffect(() => {
     const isField = (el: EventTarget | null) => el instanceof HTMLElement && (el.tagName === "TEXTAREA" || (el.tagName === "INPUT" && !["checkbox", "radio", "range", "file", "button", "submit"].includes((el as HTMLInputElement).type)) || el.isContentEditable);
@@ -76,23 +82,24 @@ export function Shell({ children }: { children: ReactNode }) {
   const side = (
     <div className="flex h-full flex-col">
       <div className="flex h-16 items-center px-5"><Link href="/" className="focus-ring inline-flex h-11 items-center rounded-md"><Logo /></Link></div>
-      <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-2">
+      <SlidingNav activeKey={path} className="flex-1 space-y-5 overflow-y-auto px-3 py-2"
+        indicatorClassName="inset-x-3 rounded-lg bg-surface shadow-xs ring-1 ring-border" barClassName="vt-ind-side inset-x-3"
+        indicator={<span className="absolute -left-3 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-r-full bg-primary" />}>
         {groups.map((g, gi) => (
           <div key={gi} className="space-y-0.5">
             {g.map((n) => {
               const active = isActive(n);
               return (
-                <Link key={n.href} href={n.href}
-                  className={cx("focus-ring group relative flex h-11 items-center gap-3 rounded-lg px-3 text-[14px] transition-[background-color,color] duration-150 lg:h-9 lg:gap-2.5 lg:px-2.5 lg:text-[13.5px]",
-                    active ? "bg-surface font-medium text-fg shadow-xs ring-1 ring-border" : "text-sub hover:bg-muted/80 hover:text-fg")}>
-                  {active && <span className="absolute -left-3 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-r-full bg-primary" />}
+                <Link key={n.href} href={n.href} data-active={active} onClick={go(n.href, path)}
+                  className={cx("focus-ring group relative z-10 flex h-11 items-center gap-3 rounded-lg px-3 text-[14px] transition-[background-color,color,transform] duration-fast ease-standard active:scale-[0.98] lg:h-9 lg:gap-2.5 lg:px-2.5 lg:text-[13.5px]",
+                    active ? "font-medium text-fg" : "text-sub hover:bg-muted/80 hover:text-fg")}>
                   <n.icon className={cx("h-[18px] w-[18px] transition-colors lg:h-[17px] lg:w-[17px]", active ? "text-fg" : "text-faint group-hover:text-sub")} strokeWidth={1.9} />{n.label}
                 </Link>
               );
             })}
           </div>
         ))}
-      </nav>
+      </SlidingNav>
       <div className="p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <div className="rounded-xl border border-border bg-surface p-2 shadow-xs">
           <div className="flex items-center gap-2.5 px-1 py-1">
@@ -116,22 +123,23 @@ export function Shell({ children }: { children: ReactNode }) {
   const rail = (
     <div className="flex h-full flex-col items-center py-4">
       <Link href="/" className="focus-ring mb-4 rounded-lg" aria-label="Anki-ji"><LogoMark className="h-8 w-8" /></Link>
-      <nav className="flex flex-1 flex-col items-center gap-1">
+      <SlidingNav activeKey={path} axis="both" className="flex flex-1 flex-col items-center gap-1"
+        indicatorClassName="left-0 rounded-xl bg-surface shadow-xs ring-1 ring-border" barClassName="vt-ind-rail left-0"
+        indicator={<span className="absolute -left-[14px] top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-primary" />}>
         {groups.map((g, gi) => (
           <div key={gi} className={cx("flex flex-col items-center gap-1", gi > 0 && "mt-3 border-t border-border pt-3")}>
             {g.map((n) => {
               const active = isActive(n);
               return (
-                <Link key={n.href} href={n.href} title={n.label} aria-label={n.label}
-                  className={cx("focus-ring relative inline-flex h-11 w-11 items-center justify-center rounded-xl transition-colors", active ? "bg-surface text-fg shadow-xs ring-1 ring-border" : "text-faint hover:bg-muted hover:text-fg")}>
-                  {active && <span className="absolute -left-[14px] top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-primary" />}
+                <Link key={n.href} href={n.href} title={n.label} aria-label={n.label} data-active={active} onClick={go(n.href, path)}
+                  className={cx("focus-ring relative z-10 inline-flex h-11 w-11 items-center justify-center rounded-xl transition-[background-color,color,transform] duration-fast ease-standard active:scale-[0.94]", active ? "text-fg" : "text-faint hover:bg-muted hover:text-fg")}>
                   <n.icon className="h-[19px] w-[19px]" strokeWidth={1.9} />
                 </Link>
               );
             })}
           </div>
         ))}
-      </nav>
+      </SlidingNav>
       <div className="flex flex-col items-center gap-1">
         <SyncStatus variant="icon" />
         <ThemeMenu placement="up" className="[&>div]:left-0" />
@@ -143,6 +151,7 @@ export function Shell({ children }: { children: ReactNode }) {
   );
 
   const tabs: NavItem[] = [decks, add, browse, stats];
+  const tabIndex = indicatorOffset(secondary.some(isActive) ? 4 : tabs.findIndex(isActive), 5);
   return (
     <div className="min-h-screen md:pl-[72px] lg:pl-60">
       <OfflineAgent />
@@ -157,10 +166,10 @@ export function Shell({ children }: { children: ReactNode }) {
         <ThemeMenu placement="down" className="ml-auto [&>button]:h-11 [&>button]:px-3" />
         <SyncStatus variant="compact" className="mr-1" />
       </header>
-      {open && (
-        <div className="fixed inset-0 z-40 md:hidden">
-          <div className="absolute inset-0 animate-fade-in bg-zinc-950/40 backdrop-blur-sm" onClick={() => setOpen(false)} />
-          <aside className="absolute inset-y-0 left-0 w-[min(20rem,86vw)] animate-slide-in-left border-r border-border bg-subtle pt-[env(safe-area-inset-top)] shadow-hero">
+      {drawer.mounted && (
+        <div className={cx("fixed inset-0 z-40 md:hidden", !open && "pointer-events-none")}>
+          <div className={cx("absolute inset-0 bg-zinc-950/40 backdrop-blur-sm", open ? "animate-overlay-in" : "animate-overlay-out")} onClick={() => setOpen(false)} />
+          <aside className={cx("absolute inset-y-0 left-0 w-[min(20rem,86vw)] border-r border-border bg-subtle pt-[env(safe-area-inset-top)] shadow-hero", open ? "animate-slide-in-left" : "m-drawer-out")}>
             <button onClick={() => setOpen(false)} className="absolute right-2 top-[calc(0.5rem+env(safe-area-inset-top))] inline-flex h-11 w-11 items-center justify-center rounded-xl text-sub hover:bg-muted" aria-label="close"><X className="h-5 w-5" /></button>
             {side}
           </aside>
@@ -168,16 +177,20 @@ export function Shell({ children }: { children: ReactNode }) {
       )}
       <main className={cx("mx-auto w-full px-4 sm:px-6 lg:px-12 lg:py-10 2xl:px-16",
         studying ? "max-w-6xl 2xl:max-w-7xl" : "max-w-6xl xl:max-w-[1440px] 2xl:max-w-[1600px] min-[2200px]:max-w-[1920px]",
-        studying ? "py-4 md:py-8" : "py-6 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-10")}>{children}</main>
+        studying ? "py-4 md:py-8" : "py-6 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-10")}>
+        {/* route transition: View Transition when navigating from the nav, CSS page-in otherwise */}
+        <div key={path} className={cx("vt-main", !isVTNavigating() && "animate-page-in")}>{children}</div>
+      </main>
       {/* phone bottom tab bar */}
       {!studying && !typing && (
         <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-elevated/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden" aria-label="tabs">
-          <div className="mx-auto grid h-16 max-w-md grid-cols-5">
+          <div className="relative mx-auto grid h-16 max-w-md grid-cols-5">
+            {/* morphing indicator: slides between equal columns (no measuring) */}
+            {tabIndex != null && <span aria-hidden className="m-indicator vt-ind-tab pointer-events-none absolute left-0 top-0 flex w-1/5 justify-center" style={{ transform: `translate3d(${tabIndex}%, 0, 0)` }}><span className="h-[3px] w-8 rounded-b-full bg-primary" /></span>}
             {tabs.map((n) => {
               const active = isActive(n);
               return (
-                <Link key={n.href} href={n.href} className={cx("relative flex flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors active:scale-95", active ? "text-primary-strong" : "text-faint")}>
-                  {active && <span className="absolute top-0 h-[3px] w-8 rounded-b-full bg-primary" />}
+                <Link key={n.href} href={n.href} onClick={go(n.href, path)} className={cx("relative flex flex-col items-center justify-center gap-1 text-[11px] font-medium transition-[color,transform] duration-fast ease-standard active:scale-95", active ? "text-primary-strong" : "text-faint")}>
                   {n.href === "/add"
                     ? <span className={cx("inline-flex h-7 w-11 items-center justify-center rounded-full", active ? "bg-primary text-primary-fg" : "bg-muted text-sub")}><n.icon className="h-[18px] w-[18px]" strokeWidth={2.2} /></span>
                     : <n.icon className="h-[22px] w-[22px]" strokeWidth={active ? 2.2 : 1.8} />}

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { BarChart3, CalendarClock, CheckCircle2, Flame, Play, Target } from "lucide-react";
 import { useApp } from "./providers";
-import { Button, Card, CardHeader, IconChip, Pill, ProgressBar } from "./ui";
+import { Button, Card, CardHeader, IconChip, Pill, ProgressBar, Skeleton } from "./ui";
 import { Bars, Heatmap } from "./charts";
 
 export interface DashStats {
@@ -22,7 +22,7 @@ export function DeckDashboard({ due, next, stats }: { due: { new: number; learni
     <div className="flex items-center justify-between py-1.5 text-[13px]"><span className="text-sub">{label}</span><Pill tone={tone} mono className="min-w-[34px] justify-center">{n}</Pill></div>
   );
   return (
-    <div className="space-y-4" data-testid="deck-dashboard">
+    <div className="m-stagger space-y-4" data-testid="deck-dashboard">
       <Card className="p-5">
         <CardHeader className="mb-4" icon={<IconChip tone="primary"><Target /></IconChip>} title={t("todayPlan")}
           description={stats ? t("studiedMin", { n: stats.today.minutes }) : undefined} />
@@ -45,13 +45,13 @@ export function DeckDashboard({ due, next, stats }: { due: { new: number; learni
       <Card className="p-5">
         <CardHeader className="mb-4" icon={<IconChip tone="sky"><CalendarClock /></IconChip>} title={t("next14")}
           actions={<span className="num text-xs text-faint">{t("total")} {fc.reduce((a, b) => a + b, 0)}</span>} />
-        {stats ? <Bars values={fc} labels={fc.map((_, i) => fmt(stats.todayIndex + i))} highlightFirst heightCls="h-28" /> : <div className="h-28 animate-pulse rounded-lg bg-muted" />}
+        {stats ? <Bars values={fc} labels={fc.map((_, i) => fmt(stats.todayIndex + i))} highlightFirst heightCls="h-28" /> : <Skeleton className="h-28 w-full" />}
       </Card>
 
       <Card className="p-5">
         <CardHeader className="mb-4" icon={<IconChip tone="orange"><Flame /></IconChip>} title={t("heatmap")} description={t("last20w")}
           actions={<Link href="/stats" className="inline-flex h-8 items-center gap-1 rounded-lg px-2 text-xs text-sub transition-colors hover:bg-muted hover:text-fg"><BarChart3 className="h-3.5 w-3.5" />{t("openStats")}</Link>} />
-        {stats ? <Heatmap weeks={20} data={stats.heatmap} today={stats.todayIndex} locale={locale} weekdays={t("weekdays").split(",")} less={t("less")} more={t("more_")} /> : <div className="h-28 animate-pulse rounded-lg bg-muted" />}
+        {stats ? <Heatmap weeks={20} data={stats.heatmap} today={stats.todayIndex} locale={locale} weekdays={t("weekdays").split(",")} less={t("less")} more={t("more_")} /> : <Skeleton className="h-28 w-full" />}
         {stats && (
           <div className="mt-4 grid grid-cols-2 gap-2">
             <div className="rounded-xl border border-border bg-subtle px-3 py-2"><div className="text-[11.5px] text-faint">{t("streak")}</div><div className="num text-[17px] font-semibold text-fg">{stats.streak} <span className="text-xs font-normal text-faint">{t("days")}</span></div></div>

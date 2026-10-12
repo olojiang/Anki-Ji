@@ -1,5 +1,6 @@
 "use client";
-/** Small dependency-free charts shared by Stats and the Decks dashboard. Colors come from theme tokens. */
+/** Small dependency-free charts shared by Stats and the Decks dashboard. Colors come from theme tokens.
+ *  Motion: bars grow up from the baseline (scaleY, staggered); heatmap weeks fade in left → right. */
 import { cx } from "./ui";
 
 export function Bars({ values, labels, stacks, highlightFirst, barCls = "bg-gradient-to-t from-primary to-primary/60", heightCls = "h-44" }: { values: number[]; labels?: string[]; stacks?: { v: number[]; cls: string }[]; highlightFirst?: boolean; barCls?: string; heightCls?: string }) {
@@ -19,14 +20,15 @@ export function Bars({ values, labels, stacks, highlightFirst, barCls = "bg-grad
           {values.map((v, i) => {
             const tot = totals[i];
             const label = `${labels?.[i] ?? i}: ${tot}`;
+            const grow = { animationDelay: `${Math.min(i, 30) * 12}ms` };
             return (
               <div key={i} className="group relative flex h-full flex-1 flex-col justify-end" title={label}>
                 {stacks ? (
-                  <div className="flex w-full flex-col-reverse overflow-hidden rounded-t-[3px] transition-opacity group-hover:opacity-80" style={{ height: `${(tot / nice) * 100}%`, minHeight: tot ? 3 : 0 }}>
+                  <div className="flex w-full origin-bottom animate-grow-y flex-col-reverse overflow-hidden rounded-t-[3px] transition-opacity group-hover:opacity-80" style={{ height: `${(tot / nice) * 100}%`, minHeight: tot ? 3 : 0, ...grow }}>
                     {stacks.map((s, k) => <div key={k} className={s.cls} style={{ height: `${tot ? (s.v[i] / tot) * 100 : 0}%` }} />)}
                   </div>
                 ) : (
-                  <div className={cx("w-full rounded-t-[3px] transition-opacity group-hover:opacity-80", highlightFirst && i === 0 ? "bg-gradient-to-t from-amber-500 to-amber-300" : barCls)} style={{ height: `${(v / nice) * 100}%`, minHeight: v ? 3 : 0 }} />
+                  <div className={cx("w-full origin-bottom animate-grow-y rounded-t-[3px] transition-opacity group-hover:opacity-80", highlightFirst && i === 0 ? "bg-gradient-to-t from-amber-500 to-amber-300" : barCls)} style={{ height: `${(v / nice) * 100}%`, minHeight: v ? 3 : 0, ...grow }} />
                 )}
                 {tot > 0 && <span className="num pointer-events-none absolute -top-5 left-1/2 hidden -translate-x-1/2 rounded bg-fg px-1 text-[10px] text-bg group-hover:block">{tot}</span>}
               </div>
@@ -62,7 +64,8 @@ export function Heatmap({ data, today, locale, weekdays, less, more, weeks = 53 
           {Array.from({ length: weeks * 7 }, (_, i) => {
             const d = start + i; if (d > today) return null;
             const n = data[d] ?? 0;
-            return <rect key={i} x={left + Math.floor(i / 7) * step} y={top + (i % 7) * step} width={cell} height={cell} rx={2.5} className={cx(lvl(n), d === today && "stroke-fg/40")} strokeWidth={d === today ? 1 : 0}><title>{`${new Date(d * 86400000).toISOString().slice(0, 10)}: ${n}`}</title></rect>;
+            return <rect key={i} x={left + Math.floor(i / 7) * step} y={top + (i % 7) * step} width={cell} height={cell} rx={2.5} className={cx(lvl(n), d === today && "stroke-fg/40")} strokeWidth={d === today ? 1 : 0}
+              style={{ animation: "m-fade var(--dur-slow) var(--ease-standard) both", animationDelay: `${Math.floor((i / 7 / weeks) * 400)}ms` }}><title>{`${new Date(d * 86400000).toISOString().slice(0, 10)}: ${n}`}</title></rect>;
           })}
         </svg>
       </div>
