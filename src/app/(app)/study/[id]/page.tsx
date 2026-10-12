@@ -8,8 +8,9 @@ import { api } from "@/lib/api";
 import { Button, Card, Spinner, Kbd, Pill, ProgressBar, IconChip, cx } from "@/components/ui";
 import { CardView, type RenderedCardDTO } from "@/components/CardView";
 import { tm } from "@/lib/i18n-modes-batch";
+import { StudyVoice } from "@/components/tts/StudyVoice";
 
-interface StudyCard extends RenderedCardDTO { cardId: number; noteId: number; type: string; state: string; intervals: Record<string, string>; flag: number; leech: boolean; tags: string[]; retrievability: number | null; stability: number; difficulty: number; reps: number; lapses: number }
+interface StudyCard extends RenderedCardDTO { cardId: number; noteId: number; deckId?: number; type: string; state: string; intervals: Record<string, string>; flag: number; leech: boolean; tags: string[]; retrievability: number | null; stability: number; difficulty: number; reps: number; lapses: number }
 interface StudyState { deck: { id: number; name: string; filtered: boolean }; counts: { new: number; learning: number; review: number }; card: StudyCard | null; nextLearningAt: string | null }
 
 const RATING = [
@@ -142,6 +143,7 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
             <button onClick={() => action("bury")} className={cx(tool, "text-sub hover:text-fg")} title={`${t("bury")} (B)`}><EyeOff className="h-4 w-4" /></button>
             <button onClick={() => action("suspend")} className={cx(tool, "text-sub hover:text-fg")} title={`${t("suspend")} (S)`}><PauseCircle className="h-4 w-4" /></button>
             <button onClick={() => setInfo(!info)} className={cx(tool, info ? "bg-muted text-primary" : "text-sub hover:text-fg")} title={t("cardInfo")}><Info className="h-4 w-4" /></button>
+            <StudyVoice deckId={deckId} card={card} revealed={revealed} toolClass={tool} />
           </>}
         </div>
       </div>

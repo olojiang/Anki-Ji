@@ -1,7 +1,9 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Bold, Italic, Code, Sigma, ImagePlus, Music, Brackets, Eye, Plus, Trash2, Check, Upload, Eraser } from "lucide-react";
+import { Bold, Italic, Code, Sigma, ImagePlus, Music, Brackets, Eye, Plus, Trash2, Check, Upload, Eraser, Mic } from "lucide-react";
+import { RecordPanel } from "./tts/RecordPanel";
+import { ta } from "@/lib/i18n-ai";
 import { useApp } from "./providers";
 import { uploadFile } from "@/lib/api";
 import { Button, Field, Input, Select, Textarea, Toggle, cx } from "./ui";
@@ -15,6 +17,7 @@ import { clozeOrdinals } from "@/core/cloze";
 import { api } from "@/lib/api";
 import { tn } from "@/lib/i18n-notetypes";
 import type { NoteTypeDef } from "@/core/notetypes";
+import { extractAudioUrls } from "@/core/tts";
 
 export interface NoteDraft { deckId: number | null; type: NoteType; fields: NoteFields; tags: string; notetypeId?: number | null }
 
@@ -41,9 +44,10 @@ function useCustomNoteTypes(): NoteTypeDef[] | null {
 }
 
 function MdField({ label, value, onChange, rows = 4, cloze, autoFocus, rtl }: { label: string; value: string; onChange: (v: string) => void; rows?: number; cloze?: boolean; autoFocus?: boolean; rtl?: boolean }) {
-  const { t, err } = useApp();
+  const { t, err, locale, toast } = useApp();
   const ref = useRef<HTMLTextAreaElement>(null);
   const [preview, setPreview] = useState(false);
+  const [rec, setRec] = useState(false);
   const [busy, setBusy] = useState(false);
   const wrap = (before: string, after = before) => {
     const el = ref.current; if (!el) return;
@@ -83,7 +87,11 @@ function MdField({ label, value, onChange, rows = 4, cloze, autoFocus, rtl }: { 
     ...(cloze ? [{ icon: Brackets, label: t("clozeBtn"), on: addCloze }] : []),
     { icon: ImagePlus, label: t("uploadImage"), on: () => pickFile("image/*") },
     { icon: Music, label: t("uploadAudio"), on: () => pickFile("audio/*,video/*") },
+    { icon: Mic, label: ta(locale, "recTitle"), on: () => setRec(!rec) },
   ];
+  const attachRecording = async (blob: Blob, filename: string) => {
+    try { const r = await uploadFile(blob, filename); insert(`![audio](${r.url})`); toast(ta(locale, "recAttached")); setRec(false); } catch (e) { err(e); }
+  };
   return (
     <div>
       <div className="mb-1.5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
@@ -103,6 +111,7 @@ function MdField({ label, value, onChange, rows = 4, cloze, autoFocus, rtl }: { 
           onDrop={(e) => { const f = [...e.dataTransfer.files][0]; if (f) { e.preventDefault(); upload(f); } }}
           className="font-mono text-[13.5px]" />
       )}
+      {rec && <RecordPanel className="mt-2 rounded-lg border border-border bg-subtle p-2.5" cardAudio={extractAudioUrls(value)} onAttach={attachRecording} />}
     </div>
   );
 }

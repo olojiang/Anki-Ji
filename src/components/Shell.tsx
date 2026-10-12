@@ -8,7 +8,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { Layers, Plus, Search, BarChart3, Tags, ArrowLeftRight, Trash2, Settings, LogOut, Languages, Menu, X, MoreHorizontal, LayoutTemplate } from "lucide-react";
+import { Layers, Plus, Search, BarChart3, Tags, ArrowLeftRight, Trash2, Settings, LogOut, Languages, Menu, X, MoreHorizontal, LayoutTemplate, Sparkles } from "lucide-react";
+import { ta } from "@/lib/i18n-ai";
 import { useApp } from "./providers";
 import { Logo, LogoMark } from "./AuthForm";
 import { api } from "@/lib/api";
@@ -53,6 +54,7 @@ export function Shell({ children }: { children: ReactNode }) {
     { href: "/tags", icon: Tags, label: t("navTags") },
     { href: "/notetypes", icon: LayoutTemplate, label: tn(locale, "navNoteTypes") },
     { href: "/io", icon: ArrowLeftRight, label: t("navIO") },
+    { href: "/ai", icon: Sparkles, label: ta(locale, "navAi") },
     { href: "/trash", icon: Trash2, label: t("navTrash") },
     { href: "/settings", icon: Settings, label: t("navSettings") },
   ];
