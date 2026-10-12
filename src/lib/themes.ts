@@ -27,4 +27,4 @@ export function resolveTheme(theme: Theme, prefersDark: boolean): ThemeMeta["id"
 }
 
 /** Inline boot script (runs before paint): no theme flash on load. */
-export const themeBootScript = `try{var t=localStorage.getItem('ak-theme')||'light';var ok=${JSON.stringify([...THEME_IDS])};if(ok.indexOf(t)<0)t='light';if(t==='system')t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';var d=document.documentElement;d.setAttribute('data-theme',t);if(${JSON.stringify(DARK_THEMES)}.indexOf(t)>=0)d.classList.add('dark')}catch(e){}`;
+export const themeBootScript = `try{var t=localStorage.getItem('ak-theme')||'light';var ok=${JSON.stringify([...THEME_IDS])};if(ok.indexOf(t)<0)t='light';if(t==='system')t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';var d=document.documentElement;d.setAttribute('data-theme',t);var bg=${JSON.stringify(Object.fromEntries(THEMES.map((x) => [x.id, x.swatch.bg])))}[t];document.querySelectorAll('meta[name=theme-color]').forEach(function(m){m.setAttribute('content',bg)});if(${JSON.stringify(DARK_THEMES)}.indexOf(t)>=0)d.classList.add('dark')}catch(e){}`;

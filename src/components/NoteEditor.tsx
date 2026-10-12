@@ -70,11 +70,11 @@ function MdField({ label, value, onChange, rows = 4, cloze, autoFocus }: { label
   ];
   return (
     <div>
-      <div className="mb-1.5 flex items-center justify-between gap-2">
+      <div className="mb-1.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
         <span className="text-[13px] font-medium text-sub">{label}</span>
-        <div className="flex items-center gap-0.5">
-          {tools.map((x) => <button key={x.label} type="button" onClick={x.on} title={x.label} className={cx("inline-flex h-7 items-center gap-1 rounded-md px-1.5 text-faint hover:bg-muted hover:text-fg", x.label === t("clozeBtn") && "text-primary")}><x.icon className="h-3.5 w-3.5" />{x.label === t("clozeBtn") && <span className="text-xs">{x.label}</span>}</button>)}
-          <button type="button" onClick={() => setPreview(!preview)} title={t("preview")} className={cx("inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-muted", preview ? "text-primary" : "text-faint")}><Eye className="h-3.5 w-3.5" /></button>
+        <div className="-mr-1 flex flex-wrap items-center gap-0.5">
+          {tools.map((x) => <button key={x.label} type="button" onClick={x.on} title={x.label} className={cx("inline-flex h-11 min-w-11 items-center justify-center gap-1 rounded-lg px-1.5 text-faint hover:bg-muted hover:text-fg sm:h-7 sm:min-w-0 sm:rounded-md", x.label === t("clozeBtn") && "text-primary")}><x.icon className="h-3.5 w-3.5" />{x.label === t("clozeBtn") && <span className="text-xs">{x.label}</span>}</button>)}
+          <button type="button" onClick={() => setPreview(!preview)} title={t("preview")} className={cx("inline-flex h-11 w-11 items-center justify-center rounded-lg hover:bg-muted sm:h-7 sm:w-7 sm:rounded-md", preview ? "text-primary" : "text-faint")}><Eye className="h-3.5 w-3.5" /></button>
         </div>
       </div>
       {preview ? (
@@ -214,7 +214,7 @@ export function NoteEditor({ decks, draft, setDraft, lockType }: { decks: DeckDT
         <div className="mb-2 flex items-center justify-between">
           <span className="text-[13px] font-medium text-sub">{t("preview")} · {ords.length} {ords.length === 1 ? "card" : "cards"}</span>
           <div className="flex items-center gap-1">
-            {ords.length > 1 && ords.map((o) => <button key={o} onClick={() => setPreviewOrd(o)} className={cx("h-7 min-w-7 rounded-md px-2 text-xs", o === previewOrd ? "bg-primary text-primary-fg" : "text-sub hover:bg-muted")}>{draft.type === "cloze" ? `c${o}` : o + 1}</button>)}
+            {ords.length > 1 && ords.map((o) => <button key={o} onClick={() => setPreviewOrd(o)} className={cx("h-10 min-w-10 rounded-md px-2 text-xs sm:h-7 sm:min-w-7", o === previewOrd ? "bg-primary text-primary-fg" : "text-sub hover:bg-muted")}>{draft.type === "cloze" ? `c${o}` : o + 1}</button>)}
             <Button size="sm" variant="ghost" onClick={() => setRevealed(!revealed)}>{revealed ? t("front") : t("showAnswer")}</Button>
           </div>
         </div>

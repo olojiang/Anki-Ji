@@ -117,6 +117,7 @@ export const DICT = {
   sessionDone: ["本次已复习 {n} 张", "{n} reviewed this session"], remaining: ["剩余", "left"],
   less: ["少", "Less"], more_: ["多", "More"], peak: ["峰值", "Peak"], total: ["合计", "Total"],
   signedInAs: ["当前账号", "Signed in as"],
+  tapHint: ["轻点卡片翻面", "Tap the card to flip"], swipeHint: ["右滑 良好 · 左滑 重来", "Swipe right: Good · left: Again"],
   themeHint: ["主题跟随账号保存，并在本设备即时生效", "Saved to your account and applied instantly on this device"],
   // errors
   e_invalid_credentials: ["邮箱或密码错误", "Wrong email or password"], e_email_taken: ["该邮箱已注册", "Email already registered"], e_invalid_email: ["邮箱格式不正确", "Invalid email"],

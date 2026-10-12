@@ -105,7 +105,7 @@ export default function DecksPage() {
           }}
           onDrop={(e) => { e.preventDefault(); onDrop(n, drag?.zone ?? "inside"); }}
           className={cx(
-            "group relative flex h-[52px] items-center gap-1.5 border-t sm:gap-2 border-border/80 px-3 transition-colors duration-150 hover:bg-subtle",
+            "group relative flex h-14 items-center gap-1.5 border-t sm:h-[52px] sm:gap-2 border-border/80 px-3 transition-colors duration-150 hover:bg-subtle",
             drag?.id === n.id && "opacity-40",
             isOver && drag?.zone === "inside" && "bg-primary/10 ring-1 ring-inset ring-primary/40",
           )}
@@ -115,12 +115,12 @@ export default function DecksPage() {
           <GripVertical className="hidden h-4 w-4 shrink-0 cursor-grab text-faint opacity-0 transition-opacity group-hover:opacity-100 sm:block" />
           <div style={{ width: depth * 22 }} className="hidden shrink-0 sm:block" />
           <div style={{ width: depth * 12 }} className="shrink-0 sm:hidden" />
-          <button onClick={() => hasKids && toggle(n.id)} className={cx("inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-faint transition-colors", hasKids ? "hover:bg-muted hover:text-fg" : "invisible")} aria-label="toggle">
+          <button onClick={() => hasKids && toggle(n.id)} className={cx("inline-flex h-10 w-7 shrink-0 sm:h-6 sm:w-6 items-center justify-center rounded-md text-faint transition-colors", hasKids ? "hover:bg-muted hover:text-fg" : "invisible")} aria-label="toggle">
             <ChevronRight className={cx("h-4 w-4 transition-transform duration-200", open && "rotate-90")} />
           </button>
           <ProgressRing value={c.total ? 1 - Math.min(1, (c.new + c.learning + c.review) / c.total) : 0} size={22} stroke={2.5} className="hidden sm:inline-flex"
             title={t("clearedPct", { p: c.total ? Math.round((1 - Math.min(1, (c.new + c.learning + c.review) / c.total)) * 100) : 0 })} />
-          <Link href={`/study/${n.id}`} className="flex min-w-0 flex-1 items-center gap-2 text-[14px] font-medium tracking-[-0.01em] text-fg transition-colors hover:text-primary">
+          <Link href={`/study/${n.id}`} className="flex min-w-0 flex-1 items-center gap-2 self-stretch text-[14px] font-medium tracking-[-0.01em] text-fg transition-colors hover:text-primary">
             {n.filtered && <Filter className="h-3.5 w-3.5 shrink-0 text-primary" />}
             <span className="truncate">{n.name}</span>
             <span className="num hidden shrink-0 text-[11.5px] font-normal text-faint sm:inline">{c.total}</span>
@@ -132,7 +132,7 @@ export default function DecksPage() {
           </div>
           <div className="relative flex shrink-0 items-center">
             <Link href={`/study/${n.id}`} className="hidden h-8 w-8 items-center justify-center rounded-lg text-faint transition-all hover:bg-primary/10 hover:text-primary group-hover:text-sub sm:inline-flex" title={t("study")}><Play className="h-4 w-4" /></Link>
-            <button onClick={(e) => { e.stopPropagation(); setMenu(menu === n.id ? null : n.id); }} className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-faint transition-colors hover:bg-muted hover:text-fg group-hover:text-sub" aria-label={t("more")}><MoreHorizontal className="h-4 w-4" /></button>
+            <button onClick={(e) => { e.stopPropagation(); setMenu(menu === n.id ? null : n.id); }} className="inline-flex h-11 w-10 items-center justify-center rounded-lg text-faint transition-colors hover:bg-muted hover:text-fg group-hover:text-sub sm:h-8 sm:w-8" aria-label={t("more")}><MoreHorizontal className="h-4 w-4" /></button>
             {menu === n.id && (
               <div className="absolute right-0 top-9 z-20 w-52 origin-top-right animate-scale-in overflow-hidden rounded-xl border border-border bg-elevated p-1 shadow-pop" onClick={(e) => e.stopPropagation()}>
                 {!n.filtered && <MenuItem icon={FolderPlus} onClick={() => { setMenu(null); setName(""); setModal({ kind: "new", parentId: n.id }); }}>{t("newSubdeck")}</MenuItem>}
@@ -163,26 +163,26 @@ export default function DecksPage() {
         </>}
       />
       {decks && decks.length > 0 && (
-        <div className="mb-6 grid gap-3 sm:grid-cols-3">
-          <Card className="relative overflow-hidden p-4">
+        <div className="mb-6 grid grid-cols-3 gap-2 sm:gap-3">
+          <Card className="relative overflow-hidden p-3 sm:p-4">
             <div className="pointer-events-none absolute -right-10 -top-12 h-32 w-32 rounded-full bg-primary/10 blur-2xl" />
-            <div className="flex items-center gap-2.5 text-[12.5px] font-medium text-sub"><IconChip tone="primary" size="sm"><Sparkles /></IconChip>{t("dueToday")}</div>
-            <div className="mt-3 flex items-end justify-between gap-3">
-              <div className="num text-[30px] font-semibold leading-none text-fg">{due.new + due.learning + due.review}</div>
-              <div className="flex gap-1">
+            <div className="flex items-center gap-2.5 truncate text-[12px] font-medium text-sub sm:text-[12.5px]"><IconChip tone="primary" size="sm" className="hidden sm:inline-flex"><Sparkles /></IconChip>{t("dueToday")}</div>
+            <div className="mt-2 flex items-end justify-between gap-3 sm:mt-3">
+              <div className="num text-[24px] font-semibold leading-none text-fg sm:text-[30px]">{due.new + due.learning + due.review}</div>
+              <div className="hidden gap-1 lg:flex">
                 <Pill tone="sky" mono title={t("colNew")}>{due.new}</Pill>
                 <Pill tone="rose" mono title={t("colLearn")}>{due.learning}</Pill>
                 <Pill tone="emerald" mono title={t("colDue")}>{due.review}</Pill>
               </div>
             </div>
           </Card>
-          <Card className="p-4">
-            <div className="flex items-center gap-2.5 text-[12.5px] font-medium text-sub"><IconChip tone="emerald" size="sm"><CheckCircle2 /></IconChip>{t("reviewedToday")}</div>
-            <div className="mt-3 flex items-end gap-1.5"><span className="num text-[30px] font-semibold leading-none text-fg">{stats?.today.reviews ?? "—"}</span><span className="pb-0.5 text-xs text-faint">{t("cardsUnit")}</span></div>
+          <Card className="p-3 sm:p-4">
+            <div className="flex items-center gap-2.5 truncate text-[12px] font-medium text-sub sm:text-[12.5px]"><IconChip tone="emerald" size="sm" className="hidden sm:inline-flex"><CheckCircle2 /></IconChip>{t("reviewedToday")}</div>
+            <div className="mt-2 flex items-end gap-1.5 sm:mt-3"><span className="num text-[24px] font-semibold leading-none text-fg sm:text-[30px]">{stats?.today.reviews ?? "—"}</span><span className="pb-0.5 text-xs text-faint">{t("cardsUnit")}</span></div>
           </Card>
-          <Card className="p-4">
-            <div className="flex items-center gap-2.5 text-[12.5px] font-medium text-sub"><IconChip tone="orange" size="sm"><Flame /></IconChip>{t("streak")}</div>
-            <div className="mt-3 flex items-end gap-1.5"><span className="num text-[30px] font-semibold leading-none text-fg">{stats?.streak ?? "—"}</span><span className="pb-0.5 text-xs text-faint">{t("days")}</span></div>
+          <Card className="p-3 sm:p-4">
+            <div className="flex items-center gap-2.5 truncate text-[12px] font-medium text-sub sm:text-[12.5px]"><IconChip tone="orange" size="sm" className="hidden sm:inline-flex"><Flame /></IconChip>{t("streak")}</div>
+            <div className="mt-2 flex items-end gap-1.5 sm:mt-3"><span className="num text-[24px] font-semibold leading-none text-fg sm:text-[30px]">{stats?.streak ?? "—"}</span><span className="pb-0.5 text-xs text-faint">{t("days")}</span></div>
           </Card>
         </div>
       )}

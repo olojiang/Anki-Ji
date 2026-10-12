@@ -38,13 +38,13 @@ export default function TagsPage() {
   const row = (n: TagNode, depth: number): React.ReactNode => (
     <div key={n.full}>
       <div className="group flex items-center gap-2 border-b border-border px-3 py-2 last:border-0 hover:bg-muted/40">
-        <div style={{ width: depth * 20 }} />
+        <div style={{ width: depth * 16 }} className="shrink-0" />
         <button onClick={() => { const s = new Set(closed); if (s.has(n.full)) s.delete(n.full); else s.add(n.full); setClosed(s); }} className={cx("inline-flex h-5 w-5 items-center justify-center text-faint", !n.children.length && "invisible")}><ChevronRight className={cx("h-4 w-4 transition-transform", !closed.has(n.full) && "rotate-90")} /></button>
         <TagIcon className="h-3.5 w-3.5 text-primary" />
         <Link href={`/browse?q=${encodeURIComponent(`tag:${n.full}`)}`} className="min-w-0 flex-1 truncate text-sm font-medium hover:text-primary">{n.name}</Link>
-        <span className="text-xs text-faint">{t("notesCount", { n: total(n) })}</span>
-        <button onClick={() => { const to = prompt(t("renameTagTo"), n.full); if (to && to !== n.full) act(() => api("/api/tags", { method: "PATCH", body: { from: n.full, to } })); }} className="inline-flex h-7 w-7 items-center justify-center rounded-md text-faint opacity-0 hover:bg-muted hover:text-fg group-hover:opacity-100" title={t("rename")}><Pencil className="h-3.5 w-3.5" /></button>
-        <button onClick={() => { if (confirm(t("deleteTagQ", { name: n.full }))) act(() => api(`/api/tags?name=${encodeURIComponent(n.full)}`, { method: "DELETE" })); }} className="inline-flex h-7 w-7 items-center justify-center rounded-md text-faint opacity-0 hover:bg-muted hover:text-again group-hover:opacity-100" title={t("delete")}><Trash2 className="h-3.5 w-3.5" /></button>
+        <span className="shrink-0 text-xs text-faint">{t("notesCount", { n: total(n) })}</span>
+        <button onClick={() => { const to = prompt(t("renameTagTo"), n.full); if (to && to !== n.full) act(() => api("/api/tags", { method: "PATCH", body: { from: n.full, to } })); }} className="inline-flex h-7 w-7 items-center justify-center rounded-md text-faint opacity-0 hover:bg-muted hover:text-fg group-hover:opacity-100 max-md:h-10 max-md:w-10 max-md:opacity-100" title={t("rename")}><Pencil className="h-3.5 w-3.5" /></button>
+        <button onClick={() => { if (confirm(t("deleteTagQ", { name: n.full }))) act(() => api(`/api/tags?name=${encodeURIComponent(n.full)}`, { method: "DELETE" })); }} className="inline-flex h-7 w-7 items-center justify-center rounded-md text-faint opacity-0 hover:bg-muted hover:text-again group-hover:opacity-100 max-md:h-10 max-md:w-10 max-md:opacity-100" title={t("delete")}><Trash2 className="h-3.5 w-3.5" /></button>
       </div>
       {!closed.has(n.full) && n.children.map((c) => row(c, depth + 1))}
     </div>
@@ -57,7 +57,7 @@ export default function TagsPage() {
         <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="日语::N5" />
         <Button variant="primary" type="submit"><Plus className="h-4 w-4" />{t("newTag")}</Button>
       </form>
-      {tags === null ? <div className="flex justify-center py-16"><Spinner /></div> : tags.length === 0 ? <Empty icon={<TagIcon className="h-8 w-8" />} title={t("noTags")} /> : <Card className="overflow-hidden">{tree.map((n) => row(n, 0))}</Card>}
+      {tags === null ? <div className="flex justify-center py-16"><Spinner /></div> : tags.length === 0 ? <Empty icon={<TagIcon />} title={t("noTags")} /> : <Card className="overflow-hidden">{tree.map((n) => row(n, 0))}</Card>}
     </div>
   );
 }

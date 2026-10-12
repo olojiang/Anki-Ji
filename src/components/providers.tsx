@@ -3,7 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { Check, AlertCircle } from "lucide-react";
 import { translate, type DictKey, type Locale } from "@/lib/i18n";
 
-import { DARK_THEMES, isTheme, resolveTheme, type Theme } from "@/lib/themes";
+import { DARK_THEMES, THEMES, isTheme, resolveTheme, type Theme } from "@/lib/themes";
 interface Toast { id: number; text: string; kind: "ok" | "error" }
 interface Ctx {
   locale: Locale; setLocale: (l: Locale) => void;
@@ -19,6 +19,8 @@ export function applyTheme(theme: Theme) {
   const d = document.documentElement;
   d.setAttribute("data-theme", id);
   d.classList.toggle("dark", (DARK_THEMES as string[]).includes(id));
+  const bg = THEMES.find((x) => x.id === id)?.swatch.bg;
+  if (bg) document.querySelectorAll("meta[name=theme-color]").forEach((m) => m.setAttribute("content", bg));
 }
 
 export function Providers({ children, initialLocale = "zh" }: { children: ReactNode; initialLocale?: Locale }) {
@@ -64,7 +66,7 @@ export function Providers({ children, initialLocale = "zh" }: { children: ReactN
   return (
     <C.Provider value={value}>
       {children}
-      <div className="pointer-events-none fixed bottom-6 left-1/2 z-[100] flex -translate-x-1/2 flex-col items-center gap-2">
+      <div className="pointer-events-none fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] left-1/2 z-[100] w-max max-w-[92vw] md:bottom-6 flex -translate-x-1/2 flex-col items-center gap-2">
         {toasts.map((x) => (
           <div key={x.id} className="pointer-events-auto flex animate-scale-in items-center gap-2.5 rounded-xl border border-border bg-elevated/95 py-2.5 pl-3 pr-4 text-[13.5px] text-fg shadow-pop backdrop-blur-xl">
             {x.kind === "error"

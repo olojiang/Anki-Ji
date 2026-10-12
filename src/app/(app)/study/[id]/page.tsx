@@ -30,6 +30,8 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
   const [busy, setBusy] = useState(false);
   const [info, setInfo] = useState(false);
   const [done, setDone] = useState(0);
+  const [dx, setDx] = useState(0);
+  const touch = useRef<{ x: number; y: number; t: number; lock: "h" | "v" | null } | null>(null);
   const shownAt = useRef(Date.now());
 
   const apply = useCallback((s: StudyState | null) => {
@@ -102,11 +104,27 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
   const c = st.counts;
   const card = st.card;
   const remaining = c.new + c.learning + c.review;
-  const tool = "inline-flex h-8 w-8 items-center justify-center rounded-lg transition-[background-color,color,transform] duration-150 hover:bg-muted active:scale-95";
+  const SWIPE = 90;
+  const interactive = (el: EventTarget | null) => el instanceof Element && !!el.closest("button,a,input,textarea,select,audio,video,label,iframe,summary");
+  const onCardClick = (e: React.MouseEvent) => { if (!revealed && !interactive(e.target)) setRevealed(true); };
+  const onTouchStart = (e: React.TouchEvent) => { if (!revealed || interactive(e.target)) return; const p = e.touches[0]; touch.current = { x: p.clientX, y: p.clientY, t: Date.now(), lock: null }; };
+  const onTouchMove = (e: React.TouchEvent) => {
+    const s0 = touch.current; if (!s0) return;
+    const p = e.touches[0]; const ddx = p.clientX - s0.x, ddy = p.clientY - s0.y;
+    if (!s0.lock) { if (Math.abs(ddx) < 8 && Math.abs(ddy) < 8) return; s0.lock = Math.abs(ddx) > Math.abs(ddy) ? "h" : "v"; }
+    if (s0.lock === "h") setDx(ddx);
+  };
+  const onTouchEnd = () => {
+    const s0 = touch.current; touch.current = null;
+    if (!s0 || s0.lock !== "h") { setDx(0); return; }
+    const d = dx; setDx(0);
+    if (d > SWIPE) rate(3); else if (d < -SWIPE) rate(1);
+  };
+  const tool = "inline-flex h-10 w-10 sm:h-8 sm:w-8 items-center justify-center rounded-lg transition-[background-color,color,transform] duration-150 hover:bg-muted active:scale-95";
   const stateTone = card?.state === "new" ? "sky" : card?.state === "review" ? "emerald" : "rose";
   const stateLabel = card?.state === "new" ? t("stNew") : card?.state === "review" ? t("stReview") : card?.state === "learning" ? t("stLearning") : t("stRelearning");
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-3xl flex-col">
+    <div className={cx("mx-auto flex max-w-3xl flex-col md:min-h-[calc(100vh-8rem)]", card ? "min-h-[calc(100dvh-6rem)] pb-[calc(7.5rem+env(safe-area-inset-bottom))] md:pb-0" : "min-h-[calc(100dvh-8rem)]")}>
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <Link href="/" className={cx(tool, "text-sub hover:text-fg")} aria-label={t("back")}><ArrowLeft className="h-4 w-4" /></Link>
         <h1 className="min-w-[96px] flex-1 truncate text-[15px] font-semibold tracking-[-0.01em]">{st.deck.name}</h1>
@@ -146,7 +164,13 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
           <div className="relative flex flex-1 flex-col">
             <div className="pointer-events-none absolute inset-x-8 -bottom-3 top-6 rounded-3xl border border-border/70 bg-surface/50 shadow-xs" />
             <div className="pointer-events-none absolute inset-x-4 -bottom-1.5 top-3 rounded-3xl border border-border/80 bg-surface/80 shadow-xs" />
-            <Card key={card.cardId} className="relative flex flex-1 animate-card-in flex-col rounded-3xl px-5 pb-10 pt-5 shadow-hero sm:px-12 sm:pb-14">
+            <div className="relative flex flex-1 flex-col" onClick={onCardClick} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onTouchCancel={onTouchEnd}
+              style={{ transform: dx ? `translateX(${dx}px) rotate(${dx / 36}deg)` : undefined, transition: dx ? "none" : "transform .25s cubic-bezier(0.16,1,0.3,1)", touchAction: revealed ? "pan-y" : "auto" }}>
+            {dx !== 0 && (
+              <div className={cx("pointer-events-none absolute left-1/2 top-6 z-10 -translate-x-1/2 rounded-full px-3 py-1 text-[13px] font-semibold shadow-md ring-1 ring-inset", dx > 0 ? "bg-good/15 text-good ring-good/30" : "bg-again/15 text-again ring-again/30")}
+                style={{ opacity: Math.min(1, Math.abs(dx) / SWIPE) }}>{dx > 0 ? t("good") : t("again")}</div>
+            )}
+            <Card key={card.cardId} className={cx("relative flex min-h-[52dvh] flex-1 animate-card-in flex-col rounded-3xl px-5 pb-10 pt-5 shadow-hero sm:px-12 sm:pb-14 md:min-h-0", !revealed && "cursor-pointer md:cursor-auto")}>
               <div className="mb-6 flex items-center justify-between gap-2">
                 <Pill tone={stateTone} dot>{stateLabel}</Pill>
                 <span className="flex items-center gap-1.5">
@@ -168,24 +192,26 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
               <div className="my-auto">
                 <CardView card={card} revealed={revealed} typed={typed} onTyped={setTyped} onSubmitTyped={() => setRevealed(true)} picked={picked} onPick={pick} />
               </div>
+              <p className="mt-8 text-center text-[11.5px] text-faint md:hidden">{revealed ? t("swipeHint") : t("tapHint")}</p>
             </Card>
+            </div>
           </div>
-          <div className="sticky bottom-0 mt-6 bg-gradient-to-t from-bg via-bg/95 to-transparent pb-3 pt-3">
+          <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-elevated/90 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-xl md:sticky md:inset-auto md:z-auto md:mt-6 md:border-0 md:bg-transparent md:bg-gradient-to-t md:from-bg md:via-bg/95 md:to-transparent md:px-0 md:pb-3 md:backdrop-blur-none">
             {!revealed ? (
-              <Button variant="primary" size="lg" className="h-12 w-full text-[15px]" onClick={() => setRevealed(true)}>{t("showAnswer")} <span className="ml-1 hidden sm:inline-flex"><Kbd>Space</Kbd></span></Button>
+              <Button variant="primary" size="lg" className="h-14 w-full text-[16px] md:h-12 md:text-[15px]" onClick={() => setRevealed(true)}>{t("showAnswer")} <span className="ml-1 hidden md:inline-flex"><Kbd>Space</Kbd></span></Button>
             ) : (
               <div className="grid animate-rise-in grid-cols-4 gap-2 sm:gap-3">
                 {RATING.map((b) => (
                   <button key={b.r} disabled={busy} onClick={() => rate(b.r)}
-                    className={cx("focus-ring group flex flex-col items-center rounded-xl border border-border bg-surface px-1 py-2.5 shadow-card transition-all duration-150 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.97] disabled:opacity-50 sm:py-3", b.cls)}>
+                    className={cx("focus-ring group flex min-h-[64px] flex-col items-center justify-center rounded-2xl border border-border bg-surface px-1 py-2.5 shadow-card md:min-h-0 md:rounded-xl transition-all duration-150 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.97] disabled:opacity-50 sm:py-3", b.cls)}>
                     <span className="num text-[11.5px] text-faint">{card.intervals[String(b.r)]}</span>
-                    <span className={cx("mt-0.5 inline-flex items-center gap-1.5 text-[14.5px] font-semibold", b.text)}><span className={cx("hidden h-1.5 w-1.5 rounded-full sm:inline-block", b.dot)} />{t(b.key)}</span>
-                    <span className="mt-1.5 hidden text-faint sm:block"><Kbd>{b.r}</Kbd></span>
+                    <span className={cx("mt-0.5 inline-flex items-center gap-1.5 text-[16px] font-semibold md:text-[14.5px]", b.text)}><span className={cx("hidden h-1.5 w-1.5 rounded-full sm:inline-block", b.dot)} />{t(b.key)}</span>
+                    <span className="mt-1.5 hidden text-faint md:block"><Kbd>{b.r}</Kbd></span>
                   </button>
                 ))}
               </div>
             )}
-            <p className="mt-3 hidden text-center text-[11.5px] text-faint sm:block">{t("shortcuts")}</p>
+            <p className="mt-3 hidden text-center text-[11.5px] text-faint md:block">{t("shortcuts")}</p>
           </div>
         </>
       )}

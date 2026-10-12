@@ -1,10 +1,10 @@
 "use client";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, ChevronUp, ChevronDown, ChevronRight, HelpCircle, Flag, PauseCircle, PlayCircle, FolderInput, TagIcon, Tags, RotateCcw, Trash2, X, GripVertical } from "lucide-react";
 import { useApp } from "@/components/providers";
 import { api } from "@/lib/api";
-import { Badge, Button, Card, Empty, Input, Modal, PageHeader, Pill, Segmented, Select, Spinner, cx } from "@/components/ui";
+import { Badge, Button, Card, Empty, Input, Kbd, Modal, PageHeader, Pill, Segmented, Select, Spinner, cx } from "@/components/ui";
 import { DeckPicker } from "@/components/DeckPicker";
 import type { BrowseRowDTO, DeckDTO } from "@/lib/types";
 
@@ -34,6 +34,15 @@ export default function BrowsePage() {
   const [moveDeck, setMoveDeck] = useState<number | null>(null);
   const [closed, setClosed] = useState<Set<string>>(new Set());
   const [dragNote, setDragNote] = useState<number | null>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (e.key === "/" && tag !== "INPUT" && tag !== "TEXTAREA" && tag !== "SELECT") { e.preventDefault(); searchRef.current?.focus(); }
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, []);
 
   useEffect(() => {
     const init = new URLSearchParams(window.location.search).get("q");
@@ -83,20 +92,21 @@ export default function BrowsePage() {
   return (
     <div>
       <PageHeader title={t("browse")} subtitle={rows ? t("results", { n: list.length }) : undefined} />
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <form className="relative min-w-[260px] flex-1" onSubmit={(e) => { e.preventDefault(); setApplied(q); setSel(new Set()); }}>
+      <div className="mb-4 grid grid-cols-2 gap-2 md:flex md:flex-wrap md:items-center">
+        <form className="relative col-span-2 md:min-w-[260px] md:flex-1" onSubmit={(e) => { e.preventDefault(); setApplied(q); setSel(new Set()); }}>
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("searchPh")} className="h-10 pl-9 pr-9 font-mono text-[12.5px] placeholder:font-sans placeholder:text-[13px]" />
-          <button type="button" onClick={() => setHelp(true)} className="absolute right-2 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-faint transition-colors hover:bg-muted hover:text-fg" title={t("syntaxHelp")}><HelpCircle className="h-4 w-4" /></button>
+          <Input ref={searchRef} value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("searchPh")} className="pl-9 pr-9 font-mono md:pr-16 sm:h-10 text-[12.5px] placeholder:font-sans placeholder:text-[13px]" />
+          <button type="button" onClick={() => setHelp(true)} className="absolute right-0 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-md text-faint transition-colors hover:bg-muted hover:text-fg sm:right-2 sm:h-7 sm:w-7" title={t("syntaxHelp")}><HelpCircle className="h-4 w-4" /></button>
+          <span className="pointer-events-none absolute right-10 top-1/2 hidden -translate-y-1/2 text-faint md:block"><Kbd>/</Kbd></span>
         </form>
-        <Select className="h-10" value={sort} onChange={(e) => setSort(e.target.value)} title={t("sort")}>
+        <Select className="w-full min-w-0 sm:h-10 md:w-auto" value={sort} onChange={(e) => setSort(e.target.value)} title={t("sort")}>
           <option value="manual">{t("sort")}: {t("sortManual")}</option><option value="created">{t("sortCreated")}</option><option value="due">{t("sortDue")}</option>
           <option value="sortField">{t("sortField")}</option><option value="interval">{t("sortInterval")}</option><option value="lapses">{t("sortLapses")}</option><option value="difficulty">{t("sortDifficulty")}</option>
         </Select>
-        <Select className="h-10" value={group} onChange={(e) => setGroup(e.target.value as Group)} title={t("groupBy")}>
+        <Select className="w-full min-w-0 sm:h-10 md:w-auto" value={group} onChange={(e) => setGroup(e.target.value as Group)} title={t("groupBy")}>
           <option value="deck">{t("groupBy")}: {t("groupDeck")}</option><option value="tag">{t("groupTag")}</option><option value="type">{t("groupType")}</option><option value="none">{t("groupNone")}</option>
         </Select>
-        <Segmented className="h-10 items-center" value={mode} onChange={(m) => { setMode(m); setSel(new Set()); }} options={[{ value: "notes", label: t("notesMode") }, { value: "cards", label: t("cardsMode") }]} />
+        <Segmented className="col-span-2 items-center sm:h-10 md:col-span-1" value={mode} onChange={(m) => { setMode(m); setSel(new Set()); }} options={[{ value: "notes", label: t("notesMode") }, { value: "cards", label: t("cardsMode") }]} />
       </div>
 
       {sel.size > 0 && (
@@ -115,20 +125,63 @@ export default function BrowsePage() {
       )}
 
       {rows === null ? <div className="flex justify-center py-20"><Spinner /></div> : list.length === 0 ? <Empty icon={<Search />} title="—" /> : (
-        <Card className="overflow-hidden">
+        <>
+        <div className="space-y-4 lg:hidden">
+          {groups.map(([g, items]) => (
+            <section key={`m-${g}`}>
+              {group !== "none" && (
+                <button onClick={() => { const n = new Set(closed); if (n.has(g)) n.delete(g); else n.add(g); setClosed(n); }} className="mb-1 flex h-11 max-w-full items-center gap-1.5 text-xs font-semibold text-sub">
+                  <ChevronRight className={cx("h-3.5 w-3.5 shrink-0 transition-transform", !closed.has(g) && "rotate-90")} /><span className="truncate">{g}</span><span className="num rounded-full bg-muted px-1.5 text-[10.5px] font-normal text-faint">{items.length}</span>
+                </button>
+              )}
+              {!closed.has(g) && (
+                <Card className="divide-y divide-border overflow-hidden">
+                  {items.map((r) => {
+                    const deckItems = items.filter((x) => x.deckId === r.deckId);
+                    const idx = deckItems.findIndex((x) => x.noteId === r.noteId);
+                    return (
+                      <div key={`m-${g}-${key(r)}`} className={cx("flex items-start gap-1 py-2 pr-3 transition-colors active:bg-subtle", sel.has(key(r)) && "bg-primary/[0.06]")}>
+                        <label className="flex h-11 w-11 shrink-0 items-center justify-center"><input type="checkbox" className="h-[18px] w-[18px]" checked={sel.has(key(r))} onChange={() => { const n = new Set(sel); if (n.has(key(r))) n.delete(key(r)); else n.add(key(r)); setSel(n); }} /></label>
+                        <button className="min-w-0 flex-1 py-1.5 text-left" onClick={() => router.push(`/notes/${r.noteId}`)}>
+                          <div className="line-clamp-2 break-words text-[15px] font-medium leading-snug text-fg">{r.sortField || "—"}{mode === "cards" && <span className="ml-1.5 text-xs font-normal text-faint">#{r.type === "cloze" ? `c${r.ord}` : r.ord + 1}</span>}</div>
+                          <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-faint">
+                            <span className="max-w-[60%] truncate">{r.deckPath}</span><span>·</span><span>{t(`t_${r.type}`)}</span>
+                            {r.state !== "new" && <><span>·</span><span className="num">{dueText(r)}</span></>}
+                            {r.state === "review" && <><span>·</span><span className="num">{Math.round(r.interval)}d</span></>}
+                          </div>
+                          {r.tags.length > 0 && <div className="mt-1.5 flex flex-wrap gap-1">{r.tags.slice(0, 3).map((x) => <Badge key={x} className="max-w-[140px] truncate">{x}</Badge>)}</div>}
+                        </button>
+                        <div className="flex shrink-0 flex-col items-end gap-1 pt-2">
+                          <span className="inline-flex items-center gap-1">{r.flag > 0 && <Flag className="h-3.5 w-3.5 text-hard" />}{r.leech && <Badge tone="again">leech</Badge>}{stateBadge(r)}</span>
+                          {manual && (
+                            <span className="-mr-2 inline-flex text-faint">
+                              <button disabled={idx <= 0} onClick={() => reorder(r.noteId, idx - 1)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg active:bg-muted disabled:opacity-30" aria-label={t("moveUp")}><ChevronUp className="h-4 w-4" /></button>
+                              <button disabled={idx >= deckItems.length - 1} onClick={() => reorder(r.noteId, idx + 1)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg active:bg-muted disabled:opacity-30" aria-label={t("moveDown")}><ChevronDown className="h-4 w-4" /></button>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </Card>
+              )}
+            </section>
+          ))}
+        </div>
+        <Card className="hidden overflow-hidden lg:block">
           <div className="overflow-x-auto scrollbar-thin">
-            <table className="w-full min-w-[760px] text-left text-[13.5px]">
+            <table className="w-full table-fixed text-left text-[13.5px]">
               <thead className="border-b border-border bg-subtle/80 text-[11px] uppercase tracking-[0.04em] text-faint">
                 <tr>
                   <th className="w-10 px-3 py-2"><input type="checkbox" className="accent-primary" checked={allChecked} onChange={() => setSel(allChecked ? new Set() : new Set(list.map(key)))} /></th>
-                  {manual && <th className="w-14" />}
+                  {manual && <th className="w-16" />}
                   <th className="px-2 py-2.5 font-medium">{t("colQuestion")}</th>
-                  <th className="px-2 py-2.5 font-medium">{t("colDeck")}</th>
-                  <th className="px-2 py-2.5 font-medium">{t("colType")}</th>
-                  <th className="px-2 py-2.5 font-medium">{t("colDueAt")}</th>
-                  <th className="px-2 py-2.5 text-right font-medium">{t("colIvl")}</th>
-                  <th className="px-2 py-2.5 font-medium">{t("colTags")}</th>
-                  <th className="px-3 py-2" />
+                  <th className="w-[18%] px-2 py-2.5 font-medium">{t("colDeck")}</th>
+                  <th className="hidden w-28 px-2 py-2.5 font-medium xl:table-cell">{t("colType")}</th>
+                  <th className="w-24 px-2 py-2.5 font-medium">{t("colDueAt")}</th>
+                  <th className="w-16 px-2 py-2.5 text-right font-medium">{t("colIvl")}</th>
+                  <th className="hidden w-[16%] px-2 py-2.5 font-medium xl:table-cell">{t("colTags")}</th>
+                  <th className="w-28 px-3 py-2" />
                 </tr>
               </thead>
               <tbody>
@@ -163,15 +216,15 @@ export default function BrowsePage() {
                               </span>
                             </td>
                           )}
-                          <td className="max-w-[340px] cursor-pointer px-2 py-2" onClick={() => router.push(`/notes/${r.noteId}`)}>
+                          <td className="cursor-pointer truncate px-2 py-2" onClick={() => router.push(`/notes/${r.noteId}`)}>
                             <div className="truncate font-medium text-fg transition-colors group-hover:text-primary">{r.sortField || "—"}</div>
                             {mode === "cards" && <div className="text-xs text-faint">#{r.type === "cloze" ? `c${r.ord}` : r.ord + 1}</div>}
                           </td>
-                          <td className="max-w-[200px] truncate px-2 py-2 text-sub" title={r.deckPath}>{r.deckPath}</td>
-                          <td className="whitespace-nowrap px-2 py-2 text-sub">{t(`t_${r.type}`)}</td>
+                          <td className="truncate px-2 py-2 text-sub" title={r.deckPath}>{r.deckPath}</td>
+                          <td className="hidden truncate px-2 py-2 text-sub xl:table-cell">{t(`t_${r.type}`)}</td>
                           <td className="num whitespace-nowrap px-2 py-2 text-[12px] text-sub">{dueText(r)}</td>
                           <td className="num whitespace-nowrap px-2 py-2 text-right text-[12px] text-sub">{r.state === "review" ? `${Math.round(r.interval)}d` : "—"}</td>
-                          <td className="max-w-[160px] px-2 py-2"><div className="flex gap-1 overflow-hidden">{r.tags.slice(0, 3).map((x) => <Badge key={x} className="max-w-[110px] truncate">{x}</Badge>)}</div></td>
+                          <td className="hidden px-2 py-2 xl:table-cell"><div className="flex gap-1 overflow-hidden">{r.tags.slice(0, 3).map((x) => <Badge key={x} className="max-w-[110px] truncate">{x}</Badge>)}</div></td>
                           <td className="whitespace-nowrap px-3 py-2 text-right"><span className="inline-flex items-center gap-1">{r.flag > 0 && <Flag className="h-3.5 w-3.5 text-hard" />}{r.leech && <Badge tone="again">leech</Badge>}{stateBadge(r)}</span></td>
                         </tr>
                       );
@@ -182,6 +235,7 @@ export default function BrowsePage() {
             </table>
           </div>
         </Card>
+        </>
       )}
       {manual && rows && rows.length > 0 && <p className="mt-3 text-xs text-faint">{t("dragRows")}</p>}
 

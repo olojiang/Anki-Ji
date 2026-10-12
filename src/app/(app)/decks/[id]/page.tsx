@@ -141,7 +141,7 @@ export default function DeckOptionsPage({ params }: { params: Promise<{ id: stri
             <Toggle checked={c.loadBalance} onChange={(v) => set({ loadBalance: v })} label={t("loadBalance")} />
           </div>
           <Field label={t("easyDays")} className="sm:col-span-2">
-            <div className="grid grid-cols-7 gap-1.5">
+            <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-7">
               {c.easyDays.map((w, i) => (
                 <div key={i} className="text-center">
                   <div className="mb-1 text-xs text-faint">{wd[i]}</div>
@@ -166,7 +166,7 @@ export default function DeckOptionsPage({ params }: { params: Promise<{ id: stri
           <Field label={t("reviewOrder")}><Select className="w-full" value={c.reviewOrder} onChange={(e) => set({ reviewOrder: e.target.value as DeckConfig["reviewOrder"] })}><option value="due">{t("revDue")}</option><option value="retrievability">{t("revRetr")}</option><option value="random">{t("revRandom")}</option></Select></Field>
           <Field label={t("mix")}><Select className="w-full" value={c.newReviewMix} onChange={(e) => set({ newReviewMix: e.target.value as DeckConfig["newReviewMix"] })}><option value="mix">{t("mixMix")}</option><option value="newFirst">{t("mixNewFirst")}</option><option value="reviewFirst">{t("mixReviewFirst")}</option></Select></Field>
         </Section>
-        <Card className="sticky bottom-3 flex items-center justify-between gap-3 bg-elevated/90 p-3 pl-4 shadow-pop backdrop-blur-xl">
+        <Card className="sticky bottom-[calc(5rem+env(safe-area-inset-bottom))] flex md:bottom-3 items-center justify-between gap-3 bg-elevated/90 p-3 pl-4 shadow-pop backdrop-blur-xl">
           <Toggle checked={applyChildren} onChange={setApplyChildren} label={t("applyToChildren")} />
           <Button variant="primary" loading={busy} onClick={save}><Save className="h-4 w-4" />{t("save")}</Button>
         </Card>

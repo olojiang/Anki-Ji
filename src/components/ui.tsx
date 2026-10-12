@@ -18,7 +18,7 @@ const BTN_VARIANT: Record<Variant, string> = {
   ghost: "text-sub hover:bg-muted hover:text-fg",
   danger: "bg-danger text-white shadow-xs ring-1 ring-inset ring-black/10 hover:bg-danger/90 dark:text-zinc-950",
 };
-const BTN_SIZE = { sm: "h-8 px-2.5 text-[13px] gap-1.5 rounded-lg", md: "h-9 px-3.5 text-[13.5px] gap-2 rounded-lg", lg: "h-11 px-5 text-[15px] gap-2 rounded-xl" };
+const BTN_SIZE = { sm: "h-11 px-3 text-[13px] gap-1.5 rounded-lg sm:h-8 sm:px-2.5", md: "h-11 px-4 text-[14px] gap-2 rounded-xl sm:h-9 sm:px-3.5 sm:text-[13.5px] sm:rounded-lg", lg: "h-12 px-5 text-[15px] gap-2 rounded-xl sm:h-11" };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: "sm" | "md" | "lg"; loading?: boolean }>(
   function Button({ variant = "secondary", size = "md", loading, className, children, disabled, ...rest }, ref) {
@@ -34,17 +34,17 @@ export const Button = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLBut
 export function IconButton({ className, label, active, children, ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { label: string; active?: boolean }) {
   return (
     <button aria-label={label} title={label}
-      className={cx("focus-ring inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-[background-color,color,transform] duration-150 active:scale-95", active ? "bg-muted text-fg" : "text-sub hover:bg-muted hover:text-fg", className)} {...rest}>
+      className={cx("focus-ring inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-[background-color,color,transform] duration-150 active:scale-95", active ? "bg-muted text-fg" : "text-sub hover:bg-muted hover:text-fg", "max-sm:h-11 max-sm:w-11", className)} {...rest}>
       {children}
     </button>
   );
 }
 
 /* ─────────── Form controls ─────────── */
-const CONTROL = "focus-ring min-w-0 rounded-lg border border-border bg-surface text-[13.5px] text-fg shadow-xs placeholder:text-faint transition-[border-color,box-shadow] duration-150 hover:border-border-strong focus:border-primary/60 disabled:cursor-not-allowed disabled:bg-muted disabled:text-sub";
+const CONTROL = "focus-ring min-w-0 rounded-lg border border-border bg-surface text-base text-fg sm:text-[13.5px] shadow-xs placeholder:text-faint transition-[border-color,box-shadow] duration-150 hover:border-border-strong focus:border-primary/60 disabled:cursor-not-allowed disabled:bg-muted disabled:text-sub";
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(function Input({ className, ...rest }, ref) {
-  return <input ref={ref} className={cx(CONTROL, "h-9 w-full px-3", className)} {...rest} />;
+  return <input ref={ref} className={cx(CONTROL, "h-11 w-full px-3 sm:h-9", className)} {...rest} />;
 });
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(function Textarea({ className, ...rest }, ref) {
@@ -52,7 +52,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<H
 });
 
 export function Select({ className, children, ...rest }: SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select className={cx(CONTROL, "select-native h-9 cursor-pointer pl-3", className)} {...rest}>{children}</select>;
+  return <select className={cx(CONTROL, "select-native h-11 cursor-pointer pl-3 sm:h-9", className)} {...rest}>{children}</select>;
 }
 
 export function Field({ label, hint, children, className }: { label: ReactNode; hint?: ReactNode; children: ReactNode; className?: string }) {
@@ -153,7 +153,7 @@ export function Segmented<T extends string>({ value, onChange, options, classNam
     <div className={cx("inline-flex rounded-lg border border-border bg-muted/60 p-0.5", className)}>
       {options.map((o) => (
         <button key={o.value} type="button" onClick={() => onChange(o.value)}
-          className={cx("h-8 rounded-md px-3 text-[13px] transition-all duration-150", value === o.value ? "bg-surface font-medium text-fg shadow-xs ring-1 ring-border" : "text-sub hover:text-fg")}>
+          className={cx("h-10 flex-1 whitespace-nowrap rounded-md px-3 text-[13px] transition-all duration-150 sm:h-8 sm:flex-none", value === o.value ? "bg-surface font-medium text-fg shadow-xs ring-1 ring-border" : "text-sub hover:text-fg")}>
           {o.label}
         </button>
       ))}
@@ -184,9 +184,10 @@ export function Modal({ open, onClose, title, children, footer, wide }: { open: 
   }, [open, onClose]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex animate-fade-in items-start justify-center overflow-y-auto bg-zinc-950/40 p-4 pt-[10vh] backdrop-blur-sm" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={cx("w-full animate-scale-in overflow-hidden rounded-2xl border border-border bg-elevated shadow-hero", wide ? "max-w-3xl" : "max-w-md")}>
-        <div className="flex items-center justify-between px-5 pb-1 pt-4">
+    <div className="fixed inset-0 z-50 flex animate-fade-in items-end justify-center overflow-y-auto bg-zinc-950/40 backdrop-blur-sm sm:items-start sm:p-4 sm:pt-[10vh]" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className={cx("max-h-[92dvh] w-full animate-rise-in overflow-y-auto rounded-t-3xl border border-border bg-elevated pb-[env(safe-area-inset-bottom)] shadow-hero sm:max-h-none sm:animate-scale-in sm:overflow-hidden sm:rounded-2xl sm:pb-0", wide ? "sm:max-w-3xl" : "sm:max-w-md")}>
+        <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-border-strong sm:hidden" />
+        <div className="flex items-center justify-between px-5 pb-1 pt-3 sm:pt-4">
           <h2 className="text-[15px] font-semibold tracking-[-0.01em]">{title}</h2>
           <IconButton label="close" onClick={onClose}><X className="h-4 w-4" /></IconButton>
         </div>

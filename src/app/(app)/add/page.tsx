@@ -50,8 +50,9 @@ export default function AddPage() {
   return (
     <div>
       <PageHeader title={t("addNote")} subtitle={count ? `${t("added")} ${count}` : undefined}
-        actions={<Button variant="primary" loading={busy} onClick={save} disabled={!draft.deckId}><Plus className="h-4 w-4" />{t("addAndNext")} <Kbd>Ctrl ⏎</Kbd></Button>} />
+        actions={<Button variant="primary" loading={busy} onClick={save} disabled={!draft.deckId}><Plus className="h-4 w-4" />{t("addAndNext")} <span className="hidden md:inline-flex"><Kbd>Ctrl ⏎</Kbd></span></Button>} />
       <NoteEditor decks={decks} draft={draft} setDraft={setDraft} />
+      <Button variant="primary" size="lg" className="mt-6 w-full md:hidden" loading={busy} onClick={save} disabled={!draft.deckId}><Plus className="h-4 w-4" />{t("addAndNext")}</Button>
     </div>
   );
 }

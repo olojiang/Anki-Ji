@@ -77,8 +77,8 @@ function Bars({ values, labels, stacks, highlightFirst, barCls = "bg-gradient-to
   );
 }
 
-function Heatmap({ data, today, locale, weekdays, less, more }: { data: Record<string, number>; today: number; locale: string; weekdays: string[]; less: string; more: string }) {
-  const weeks = 53, cell = 11, gap = 3, step = cell + gap, left = 26, top = 16;
+function Heatmap({ data, today, locale, weekdays, less, more, weeks = 53 }: { data: Record<string, number>; today: number; locale: string; weekdays: string[]; less: string; more: string; weeks?: number }) {
+  const cell = 11, gap = 3, step = cell + gap, left = 26, top = 16;
   const end = today + (6 - ((today + 4) % 7));
   const start = end - weeks * 7 + 1;
   const max = Math.max(1, ...Object.values(data));
@@ -88,13 +88,13 @@ function Heatmap({ data, today, locale, weekdays, less, more }: { data: Record<s
     const d0 = new Date((start + w * 7) * 86400000);
     const d6 = new Date((start + w * 7 + 6) * 86400000);
     if (d6.getUTCDate() <= 7 && (w === 0 || d0.getUTCMonth() !== d6.getUTCMonth() || d0.getUTCDate() === 1)) {
-      if (w < weeks - 2) months.push({ x: left + w * step, label: d6.toLocaleDateString(locale === "zh" ? "zh-CN" : "en-US", { month: "short", timeZone: "UTC" }) });
+      if (w < weeks - 2 && (months.length === 0 || w * step - (months[months.length - 1].x - left) > 30)) months.push({ x: left + w * step, label: d6.toLocaleDateString(locale === "zh" ? "zh-CN" : "en-US", { month: "short", timeZone: "UTC" }) });
     }
   }
   return (
     <div>
-      <div className="overflow-x-auto scrollbar-thin">
-        <svg viewBox={`0 0 ${left + weeks * step} ${top + 7 * step}`} className="min-w-[640px] w-full">
+      <div>
+        <svg viewBox={`0 0 ${left + weeks * step} ${top + 7 * step}`} className="w-full">
           {months.map((m) => <text key={m.x} x={m.x} y={10} className="fill-faint text-[9px]">{m.label}</text>)}
           {[1, 3, 5].map((r) => <text key={r} x={0} y={top + r * step + 9} className="fill-faint text-[9px]">{weekdays[r]}</text>)}
           {Array.from({ length: weeks * 7 }, (_, i) => {
@@ -125,9 +125,9 @@ export default function StatsPage() {
   return (
     <div>
       <PageHeader title={t("stats")} actions={
-        <div className="flex items-center gap-2">
-          <button onClick={() => setDeckId(null)} className={cx("h-9 whitespace-nowrap rounded-lg px-3 text-[13px] transition-colors", deckId == null ? "bg-surface font-medium text-fg shadow-xs ring-1 ring-border" : "text-sub hover:bg-muted hover:text-fg")}>{t("allDecks")}</button>
-          <DeckPicker decks={decks} value={deckId} onChange={setDeckId} placeholder={t("deck")} />
+        <div className="flex w-full items-center gap-2 sm:w-auto">
+          <button onClick={() => setDeckId(null)} className={cx("h-11 whitespace-nowrap rounded-lg px-3 text-[13px] sm:h-9 transition-colors", deckId == null ? "bg-surface font-medium text-fg shadow-xs ring-1 ring-border" : "text-sub hover:bg-muted hover:text-fg")}>{t("allDecks")}</button>
+          <DeckPicker className="min-w-0 flex-1 sm:flex-none" decks={decks} value={deckId} onChange={setDeckId} placeholder={t("deck")} />
         </div>} />
       {!s ? <div className="flex justify-center py-20"><Spinner /></div> : (
         <div className="animate-rise-in space-y-4">
@@ -138,7 +138,15 @@ export default function StatsPage() {
               extra={<ProgressRing value={s.retention.actual ?? 0} size={36} stroke={3.5} className="hidden sm:inline-flex" />} />
             <Stat icon={Layers} tone="sky" label={t("totalCards")} value={String(s.totalCards)} sub={`${t("reps")} ${s.totalReviews}`} />
           </div>
-          <ChartCard title={t("heatmap")}><Heatmap data={s.heatmap} today={s.todayIndex} locale={locale} weekdays={t("weekdays").split(",")} less={t("less")} more={t("more_")} /></ChartCard>
+          <div className="grid gap-4 xl:grid-cols-3">
+          <ChartCard title={t("heatmap")} className="xl:col-span-2">
+            <div className="hidden sm:block"><Heatmap data={s.heatmap} today={s.todayIndex} locale={locale} weekdays={t("weekdays").split(",")} less={t("less")} more={t("more_")} /></div>
+            <div className="sm:hidden"><Heatmap weeks={18} data={s.heatmap} today={s.todayIndex} locale={locale} weekdays={t("weekdays").split(",")} less={t("less")} more={t("more_")} /></div>
+          </ChartCard>
+          <ChartCard title={t("cardStates")} right={<span className="num text-xs text-faint">{t("total")} {s.totalCards}</span>}>
+            <Distribution d={s.distribution} labels={{ new: t("stNew"), learning: t("stLearning"), young: t("young"), mature: t("mature"), suspended: t("suspended") }} />
+          </ChartCard>
+          </div>
           <div className="grid gap-4 lg:grid-cols-2">
             <ChartCard title={t("forecast")} right={<span className="num text-xs text-faint">{t("total")} {sum(s.forecast)}</span>}>
               <Bars values={s.forecast} labels={s.forecast.map((_, i) => fmt(s.todayIndex + i))} highlightFirst />
@@ -150,9 +158,6 @@ export default function StatsPage() {
               <div className="mt-3 flex gap-4 text-xs text-sub"><Legend cls="bg-sky-500" label={t("stLearning")} /><Legend cls="bg-emerald-500" label={t("stReview")} /><Legend cls="bg-rose-500" label={t("stRelearning")} /></div>
             </ChartCard>
           </div>
-          <ChartCard title={t("cardStates")} right={<span className="num text-xs text-faint">{t("total")} {s.totalCards}</span>}>
-            <Distribution d={s.distribution} labels={{ new: t("stNew"), learning: t("stLearning"), young: t("young"), mature: t("mature"), suspended: t("suspended") }} />
-          </ChartCard>
         </div>
       )}
     </div>
@@ -167,7 +172,7 @@ function Distribution({ d, labels }: { d: Stats["distribution"]; labels: Record<
   return (
     <div>
       <div className="flex h-2.5 w-full gap-[3px] overflow-hidden rounded-full bg-muted">{parts.filter((p) => d[p.k] > 0).map((p) => <div key={p.k} className={cx("h-full rounded-full transition-[width] duration-700", p.cls)} style={{ width: `${(d[p.k] / total) * 100}%` }} />)}</div>
-      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-5">
+      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-5 xl:grid-cols-2">
         {parts.map((p) => (
           <div key={p.k} className="rounded-xl border border-border bg-subtle px-3 py-2.5">
             <div className="flex items-center gap-1.5 truncate text-xs text-sub"><span className={cx("h-2 w-2 shrink-0 rounded-full", p.cls)} />{labels[p.k]}</div>
