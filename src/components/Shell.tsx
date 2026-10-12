@@ -60,7 +60,6 @@ export function Shell({ children }: { children: ReactNode }) {
   const toggleLocale = () => { const l = locale === "zh" ? "en" : "zh"; setLocale(l); api("/api/auth/me", { method: "PATCH", body: { settings: { locale: l } } }).catch(() => {}); };
   const initial = (me?.name || me?.email || "·").trim().charAt(0).toUpperCase();
   const studying = path.startsWith("/study");
-  const full = path.startsWith("/browse");
 
   const Avatar = ({ className }: { className?: string }) => (
     <span className={cx("inline-flex shrink-0 items-center justify-center rounded-full bg-primary font-semibold text-primary-fg shadow-inner ring-1 ring-inset ring-black/10", className)}>{initial}</span>
@@ -156,7 +155,7 @@ export function Shell({ children }: { children: ReactNode }) {
         </div>
       )}
       <main className={cx("mx-auto w-full px-4 sm:px-6 lg:px-12 lg:py-10 2xl:px-16",
-        studying ? "max-w-6xl 2xl:max-w-7xl" : full ? "max-w-[1440px] xl:max-w-none" : "max-w-6xl xl:max-w-[1440px] 2xl:max-w-[1600px] min-[2200px]:max-w-[1920px]",
+        studying ? "max-w-6xl 2xl:max-w-7xl" : "max-w-6xl xl:max-w-[1440px] 2xl:max-w-[1600px] min-[2200px]:max-w-[1920px]",
         studying ? "py-4 md:py-8" : "py-6 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-10")}>{children}</main>
       {/* phone bottom tab bar */}
       {!studying && !typing && (

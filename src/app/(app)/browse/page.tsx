@@ -182,8 +182,8 @@ export default function BrowsePage() {
                   <th className="w-[18%] px-2 py-2.5 font-medium">{t("colDeck")}</th>
                   <th className="hidden w-28 px-2 py-2.5 font-medium xl:table-cell">{t("colType")}</th>
                   <th className="w-24 px-2 py-2.5 font-medium">{t("colDueAt")}</th>
-                  <th className="w-16 px-2 py-2.5 text-right font-medium">{t("colIvl")}</th>
-                  <th className="hidden w-[16%] px-2 py-2.5 font-medium xl:table-cell">{t("colTags")}</th>
+                  <th className="w-20 whitespace-nowrap px-2 py-2.5 text-right font-medium">{t("colIvl")}</th>
+                  <th className="hidden w-[16%] py-2.5 pl-5 pr-2 font-medium xl:table-cell">{t("colTags")}</th>
                   <th className="w-28 px-3 py-2" />
                 </tr>
               </thead>
@@ -227,7 +227,7 @@ export default function BrowsePage() {
                           <td className="hidden truncate px-2 py-2 text-sub xl:table-cell">{t(`t_${r.type}`)}</td>
                           <td className="num whitespace-nowrap px-2 py-2 text-[12px] text-sub">{dueText(r)}</td>
                           <td className="num whitespace-nowrap px-2 py-2 text-right text-[12px] text-sub">{r.state === "review" ? `${Math.round(r.interval)}d` : "—"}</td>
-                          <td className="hidden px-2 py-2 xl:table-cell"><div className="flex gap-1 overflow-hidden">{r.tags.slice(0, 3).map((x) => <Badge key={x} className="max-w-[110px] truncate">{x}</Badge>)}</div></td>
+                          <td className="hidden py-2 pl-5 pr-2 xl:table-cell"><div className="flex gap-1 overflow-hidden">{r.tags.slice(0, 3).map((x) => <Badge key={x} className="max-w-[110px] truncate">{x}</Badge>)}</div></td>
                           <td className="whitespace-nowrap px-3 py-2 text-right"><span className="inline-flex items-center gap-1">{r.flag > 0 && <Flag className="h-3.5 w-3.5 text-hard" />}{r.leech && <Badge tone="again">leech</Badge>}{stateBadge(r)}</span></td>
                         </tr>
                       );
