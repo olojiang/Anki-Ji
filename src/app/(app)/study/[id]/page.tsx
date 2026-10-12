@@ -7,6 +7,7 @@ import { useApp } from "@/components/providers";
 import { api } from "@/lib/api";
 import { Button, Card, Spinner, Kbd, Pill, ProgressBar, IconChip, cx } from "@/components/ui";
 import { CardView, type RenderedCardDTO } from "@/components/CardView";
+import { tm } from "@/lib/i18n-modes-batch";
 
 interface StudyCard extends RenderedCardDTO { cardId: number; noteId: number; type: string; state: string; intervals: Record<string, string>; flag: number; leech: boolean; tags: string[]; retrievability: number | null; stability: number; difficulty: number; reps: number; lapses: number }
 interface StudyState { deck: { id: number; name: string; filtered: boolean }; counts: { new: number; learning: number; review: number }; card: StudyCard | null; nextLearningAt: string | null }
@@ -21,7 +22,7 @@ const RATING = [
 export default function StudyPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const deckId = Number(id);
-  const { t, err, toast } = useApp();
+  const { t, err, toast, locale } = useApp();
   const router = useRouter();
   const [st, setSt] = useState<StudyState | null>(null);
   const [revealed, setRevealed] = useState(false);
@@ -157,7 +158,7 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
           <p className="relative text-[20px] font-semibold tracking-[-0.02em]">{t("congrats")}</p>
           {done > 0 && <p className="relative mt-2 text-[13.5px] text-sub">{t("sessionDone", { n: done })}</p>}
           {st.nextLearningAt && <p className="relative mt-2 text-[13.5px] text-sub">{t("comeBack", { t: relTime(st.nextLearningAt) })}</p>}
-          <div className="relative mt-7 flex gap-2"><Button onClick={undo}><Undo2 className="h-4 w-4" />{t("undo")}</Button><Link href="/"><Button variant="primary">{t("backToDecks")}</Button></Link></div>
+          <div className="relative mt-7 flex flex-wrap justify-center gap-2"><Button onClick={undo}><Undo2 className="h-4 w-4" />{t("undo")}</Button><Link href={`/modes?deck=${deckId}`}><Button>{tm(locale, "modes")}</Button></Link><Link href="/"><Button variant="primary">{t("backToDecks")}</Button></Link></div>
         </Card>
       ) : (
         <>

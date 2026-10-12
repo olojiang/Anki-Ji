@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import { Badge, Button, Card, Empty, Input, Kbd, Modal, PageHeader, Pill, Segmented, Select, Spinner, cx } from "@/components/ui";
 import { DeckPicker } from "@/components/DeckPicker";
 import { BrowsePreview } from "@/components/BrowsePreview";
+import { BatchMenu } from "@/components/batch/BatchMenu";
 import type { BrowseRowDTO, DeckDTO } from "@/lib/types";
 
 type Group = "none" | "deck" | "tag" | "type";
@@ -108,6 +109,8 @@ export default function BrowsePage() {
         <Select className="w-full min-w-0 sm:h-10 md:w-auto" value={group} onChange={(e) => setGroup(e.target.value as Group)} title={t("groupBy")}>
           <option value="deck">{t("groupBy")}: {t("groupDeck")}</option><option value="tag">{t("groupTag")}</option><option value="type">{t("groupType")}</option><option value="none">{t("groupNone")}</option>
         </Select>
+        <BatchMenu className="col-span-2 md:col-span-1" query={applied} decks={decks} onChanged={load}
+          resultCount={new Set(list.map((r) => r.noteId)).size} selected={[...new Map(list.filter((r) => sel.has(key(r))).map((r) => [r.noteId, { id: r.noteId, type: r.type }])).values()]} />
         <Segmented className="col-span-2 items-center sm:h-10 md:col-span-1" value={mode} onChange={(m) => { setMode(m); setSel(new Set()); }} options={[{ value: "notes", label: t("notesMode") }, { value: "cards", label: t("cardsMode") }]} />
       </div>
 
