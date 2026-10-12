@@ -1,0 +1,15 @@
+{:version 2
+ ;; exported by Mochi
+ :templates [{:id :tpl00001 :name "Vocab"
+              :content "<< Word >>\n---\n<< Meaning >>"
+              :fields {:name {:id :name :name "Word" :pos "a"}
+                       :mean0001 {:id :mean0001 :name "Meaning" :pos "b"}}}]
+ :decks [{:id :lang0001 :name "Languages" :cards []}
+         {:id :jpn00001 :name "日本語" :parent-id :lang0001
+          :cards ({:id :card0002 :pos "b" :content "犬\n---\ndog ![](@media/dog.jpg)" :tags #{"animal" "n5"}}
+                  {:id :card0001 :pos "a" :content "The {{capital}} of Japan is {{1::Tokyo}}" :manual-tags ["geo"]}
+                  {:id :card0003 :pos "c" :template-id :tpl00001 :content ""
+                   :fields {:name {:id :name :value "猫"} :mean0001 {:id :mean0001 :value "cat"}}}
+                  {:id :card0004 :pos "d" :content "deleted\n---\ngone" :trashed? #inst "2024-01-01T00:00:00.000-00:00"}
+                  #_ {:id :ignored :content "discarded form"})}]
+ :cards [{:id :card0005 :deck-id :lang0001 :content "Hello, \"world\"\n---\nnǐ hǎo" :reviews [{:date #inst "2024-01-01" :remembered? true}]}]}
