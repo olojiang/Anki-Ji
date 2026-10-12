@@ -253,3 +253,13 @@ describe("interop exporter adapter", () => {
     expect(raw.toAnki({ custom: { w: '<img src="https://x/y.png">' } }, [0], { html: (s) => s, media: () => "y.png" })[0].fields[0]).toBe('<img src="y.png">');
   });
 });
+
+describe("CSV export of custom notes", () => {
+  it("writes the first fields as front/back and re-imports them as Basic", async () => {
+    const { notesToRows, rowsToNotes } = await import("@/core/io/csv");
+    const rows = notesToRows([{ deckPath: "D", type: "custom", fields: { custom: { w: "犬", m: "dog", r: "いぬ" } }, tags: [] }]);
+    expect(rows[1].slice(0, 4)).toEqual(["D", "custom", "犬", "dog\nいぬ"]);
+    const back = rowsToNotes(rows, { defaultDeck: "X" });
+    expect(back.notes[0]).toMatchObject({ type: "basic", fields: { front: "犬", back: "dog\nいぬ" } });
+  });
+});

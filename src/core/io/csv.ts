@@ -93,7 +93,7 @@ export function rowsToNotes(rows: string[][], opts: { defaultDeck: string }): { 
     const json = get("fields_json").trim();
     let type: NoteType = NOTE_TYPES.includes(rawType) ? rawType : hasCloze(front) ? "cloze" : "basic";
     let fields: NoteFields | null = null;
-    if (json) {
+    if (json && rawType !== "custom") {
       try { fields = cleanFields(type, JSON.parse(json)); } catch { errors.push({ row: rowNo, message: "invalid fields_json" }); return; }
     } else {
       if (!front.trim() && !back.trim()) { if (r.some((c) => c.trim())) errors.push({ row: rowNo, message: "empty front" }); else errors.push({ row: rowNo, message: "empty row" }); return; }
@@ -109,8 +109,9 @@ export function notesToRows(notes: FlatNote[]): string[][] {
   const rows = [["deck", "type", "front", "back", "tags", "fields_json"]];
   for (const n of notes) {
     const f = n.fields;
-    const front = f.front ?? f.text ?? f.question ?? f.header ?? "";
-    const back = f.back ?? f.extra ?? (f.options ? f.options.join("\n") : "") ?? "";
+    const cv = f.custom ? Object.values(f.custom) : []; // custom note types: first two fields (re-import falls back to Basic)
+    const front = f.front ?? f.text ?? f.question ?? f.header ?? cv[0] ?? "";
+    const back = f.back ?? f.extra ?? (f.options ? f.options.join("\n") : cv.slice(1).filter(Boolean).join("\n")) ?? "";
     rows.push([n.deckPath, n.type, front, back, n.tags.join(" "), JSON.stringify(f)]);
   }
   return rows;
