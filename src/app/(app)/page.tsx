@@ -9,6 +9,9 @@ import { Button, Card, Empty, Field, IconChip, Input, Modal, PageHeader, Pill, P
 import { buildTree, type TreeNode } from "@/core/tree";
 import type { Counts, DeckDTO } from "@/lib/types";
 import { DeckDashboard, type DashStats } from "@/components/DeckDashboard";
+import { CloudDownload, CloudOff } from "lucide-react";
+import { OfflineDeckList, OfflineMark, useOfflineDecks } from "@/components/offline/OfflineDecks";
+import { isNetworkError } from "@/lib/offline/client";
 
 type Node = TreeNode<DeckDTO>;
 type DropZone = "before" | "after" | "inside";
@@ -25,12 +28,14 @@ export default function DecksPage() {
   const [filter, setFilter] = useState({ query: "is:due", limit: 100, order: "due" });
   const [menu, setMenu] = useState<number | null>(null);
   const [drag, setDrag] = useState<{ id: number; over: number | null; zone: DropZone | null } | null>(null);
+  const offline = useOfflineDecks();
+  const [netDown, setNetDown] = useState(false);
 
   const load = useCallback(async () => {
     try {
       const r = await api<{ decks: DeckDTO[]; counts: Counts }>("/api/decks");
-      setDecks(r.decks); setCounts(r.counts);
-    } catch (e) { err(e); }
+      setDecks(r.decks); setCounts(r.counts); setNetDown(false);
+    } catch (e) { if (isNetworkError(e)) setNetDown(true); else err(e); }
   }, [err]);
   useEffect(() => {
     load();
@@ -125,6 +130,7 @@ export default function DecksPage() {
           <Link href={`/study/${n.id}`} className="flex min-w-0 flex-1 items-center gap-2 self-stretch text-[14px] font-medium tracking-[-0.01em] text-fg transition-colors hover:text-primary">
             {n.filtered && <Filter className="h-3.5 w-3.5 shrink-0 text-primary" />}
             <span className="truncate">{n.name}</span>
+            {offline.has(n.id) && <OfflineMark />}
             <span className="num hidden shrink-0 text-[11.5px] font-normal text-faint sm:inline">{c.total}</span>
           </Link>
           <div className="flex shrink-0 items-center sm:gap-1">
@@ -143,6 +149,7 @@ export default function DecksPage() {
                 {n.filtered && <MenuItem icon={RefreshCw} onClick={() => { setMenu(null); filteredAction(n, "rebuild"); }}>{t("rebuild")}</MenuItem>}
                 {n.filtered && <MenuItem icon={Eraser} onClick={() => { setMenu(null); filteredAction(n, "empty"); }}>{t("emptyDeck")}</MenuItem>}
                 {n.parentId != null && <MenuItem icon={Layers} onClick={async () => { setMenu(null); try { await api(`/api/decks/${n.id}/move`, { body: { parentId: null, index: 9999 } }); await load(); } catch (e) { err(e); } }}>{t("moveToRoot")}</MenuItem>}
+                <MenuItem icon={offline.has(n.id) ? CloudOff : CloudDownload} onClick={() => { setMenu(null); offline.toggle(n.id); }}>{offline.label(n.id)}</MenuItem>
                 <div className="-mx-1 my-1 border-t border-border" />
                 <MenuItem icon={Trash2} danger onClick={() => { setMenu(null); remove(n); }}>{t("delete")}</MenuItem>
               </div>
@@ -190,7 +197,7 @@ export default function DecksPage() {
           </Card>
         </div>
       )}
-      {decks === null ? <div className="flex justify-center py-20"><Spinner /></div> : decks.length === 0 ? (
+      {decks === null ? (netDown ? <OfflineDeckList /> : <div className="flex justify-center py-20"><Spinner /></div>) : decks.length === 0 ? (
         <Empty icon={<Layers />} title={t("noDecks")}><Button variant="primary" onClick={() => setModal({ kind: "new", parentId: null })}><Plus className="h-4 w-4" />{t("newDeck")}</Button></Empty>
       ) : (
         <Card className="overflow-visible">
