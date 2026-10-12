@@ -186,4 +186,14 @@ describe("note types on Postgres (PGlite)", () => {
     const rows = await searchNotes(d, "");
     expect(rows[0].type).toBe("basic");
   });
+
+  it("deleting an account removes its note types and custom notes (FK cascade)", async () => {
+    const e = (await users.createUser("nt-e@test.dev", "h", "E")).id;
+    const d = (await decks.createDeck(e, { name: "E" })).id;
+    const t = await nts.createNoteType(e, def());
+    await notes.createNote(e, { deckId: d, type: "custom", notetypeId: t.id, fields: { custom: { w: "x", m: "y" } }, tags: [] });
+    await users.deleteUser(e);
+    expect(await q("SELECT 1 FROM ak_notetypes WHERE user_id = $1", [e])).toEqual([]);
+    expect(await q("SELECT 1 FROM ak_notes WHERE user_id = $1", [e])).toEqual([]);
+  });
 });
