@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import { Button, Card, Field, Input, PageHeader, Select, Spinner, Toggle, cx } from "@/components/ui";
 import type { DeckDTO } from "@/lib/types";
 import type { DeckConfig } from "@/core/types";
+import { TtsDeckOptions } from "@/components/tts/TtsDeckOptions";
 
 const fmtSteps = (s: number[]) => s.map((m) => (m >= 1440 && m % 1440 === 0 ? `${m / 1440}d` : m >= 60 && m % 60 === 0 ? `${m / 60}h` : `${m}m`)).join(" ");
 const parseSteps = (s: string) => s.split(/[\s,]+/).filter(Boolean).map((x) => {
@@ -166,6 +167,7 @@ export default function DeckOptionsPage({ params }: { params: Promise<{ id: stri
           <Field label={t("reviewOrder")}><Select className="w-full" value={c.reviewOrder} onChange={(e) => set({ reviewOrder: e.target.value as DeckConfig["reviewOrder"] })}><option value="due">{t("revDue")}</option><option value="retrievability">{t("revRetr")}</option><option value="random">{t("revRandom")}</option></Select></Field>
           <Field label={t("mix")}><Select className="w-full" value={c.newReviewMix} onChange={(e) => set({ newReviewMix: e.target.value as DeckConfig["newReviewMix"] })}><option value="mix">{t("mixMix")}</option><option value="newFirst">{t("mixNewFirst")}</option><option value="reviewFirst">{t("mixReviewFirst")}</option></Select></Field>
         </Section>
+        <TtsDeckOptions deckId={deck.id} />
       </div>
         <Card className="sticky bottom-[calc(5rem+env(safe-area-inset-bottom))] mt-4 flex md:bottom-3 xl:mt-0 items-center justify-between gap-3 bg-elevated/90 p-3 pl-4 shadow-pop backdrop-blur-xl">
           <Toggle checked={applyChildren} onChange={setApplyChildren} label={t("applyToChildren")} />

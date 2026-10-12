@@ -3,6 +3,7 @@ import { Marked, type Tokens } from "marked";
 import katex from "katex";
 import hljs from "highlight.js/lib/common";
 import DOMPurify from "dompurify";
+import { stripTtsMarkers } from "@/core/tts";
 
 const AUDIO = /\.(mp3|ogg|oga|wav|m4a|aac|flac|opus)(\?|$)/i;
 const VIDEO = /\.(mp4|webm|mov)(\?|$)/i;
@@ -75,7 +76,7 @@ function purifier() {
 
 /** Markdown (+ inline HTML from Anki imports) → sanitised HTML. */
 export function renderMarkdown(md: string): string {
-  const html = marked.parse(md ?? "", { async: false }) as string;
+  const html = marked.parse(stripTtsMarkers(md ?? ""), { async: false }) as string;
   if (typeof window === "undefined") return "";
   return purifier().sanitize(html, {
     ADD_TAGS: ["iframe", "audio", "video", "source"],

@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from "vitest";
-import { deflateSync } from "node:zlib";
+import { deflateSync, inflateSync } from "node:zlib";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 // Session cookie for route handlers (next/headers is only available inside a Next request).
 let sessionToken: string | undefined;
@@ -126,7 +128,7 @@ function makePdf(streams: { content: string; compress?: boolean }[], extraObjs: 
 }
 
 describe("PDF text extraction (zero-dependency)", () => {
-  const inflate = (b: Uint8Array) => new Uint8Array(require("node:zlib").inflateSync(b));
+  const inflate = (b: Uint8Array) => new Uint8Array(inflateSync(b));
   it("extracts Tj/TJ text from plain and Flate streams with line breaks", () => {
     const pdf = makePdf([
       { content: "BT /F1 12 Tf 72 720 Td (Hello \\(PDF\\) world) Tj 0 -14 Td [(Sec) -250 (ond line)] TJ ET" },
@@ -145,7 +147,7 @@ describe("PDF text extraction (zero-dependency)", () => {
     expect(extractPdfText(pdf, inflate).text).toContain("AB");
   });
   it("reads a real Chrome-generated PDF with per-font CMaps (Latin + CJK Type3 fonts)", () => {
-    const bytes = new Uint8Array(require("node:fs").readFileSync(require("node:path").join(__dirname, "fixtures/ai/chrome-sample.pdf")));
+    const bytes = new Uint8Array(readFileSync(join(__dirname, "fixtures/ai/chrome-sample.pdf")));
     const r = extractPdfText(bytes, inflate);
     expect(r.pages).toBe(1);
     expect(r.text).toContain("Photosynthesis is the process by which green plants convert light energy into chemical energy.");
