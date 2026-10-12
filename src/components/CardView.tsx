@@ -59,7 +59,7 @@ export function CardView({ card, revealed, typed, onTyped, picked, onPick, onSub
                   revealed && !isCorrect && isPicked && "border-again bg-again/10",
                   revealed && !isCorrect && !isPicked && "border-border opacity-60")}>
                 <span className={cx("mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center border text-[11px] font-semibold", multi ? "rounded" : "rounded-full", isPicked ? "border-primary bg-primary text-primary-fg" : "border-border text-faint")}>{String.fromCharCode(65 + i)}</span>
-                <Markdown text={o} className="min-w-0 flex-1 [&_p]:m-0" />
+                <Markdown text={o} className="min-w-0 flex-1 text-left [&_p]:m-0" />
                 {revealed && isCorrect && <Check className="h-4 w-4 text-easy" />}
                 {revealed && !isCorrect && isPicked && <X className="h-4 w-4 text-again" />}
               </button>

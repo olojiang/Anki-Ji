@@ -172,7 +172,7 @@ export default function BrowsePage() {
                           <td className="max-w-[200px] truncate px-2 py-2 text-sub" title={r.deckPath}>{r.deckPath}</td>
                           <td className="whitespace-nowrap px-2 py-2 text-sub">{t(`t_${r.type}`)}</td>
                           <td className="whitespace-nowrap px-2 py-2 text-sub">{dueText(r)}</td>
-                          <td className="whitespace-nowrap px-2 py-2 text-right font-mono text-xs text-sub">{r.state === "new" ? "—" : `${Math.round(r.interval)}d`}</td>
+                          <td className="whitespace-nowrap px-2 py-2 text-right font-mono text-xs text-sub">{r.state === "review" ? `${Math.round(r.interval)}d` : "—"}</td>
                           <td className="max-w-[160px] px-2 py-2"><div className="flex gap-1 overflow-hidden">{r.tags.slice(0, 3).map((x) => <Badge key={x} className="max-w-[110px] truncate">{x}</Badge>)}</div></td>
                           <td className="whitespace-nowrap px-3 py-2 text-right"><span className="inline-flex items-center gap-1">{r.flag > 0 && <Flag className="h-3.5 w-3.5 text-hard" />}{r.leech && <Badge tone="again">leech</Badge>}{stateBadge(r)}</span></td>
                         </tr>

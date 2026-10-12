@@ -66,7 +66,7 @@ export const DICT = {
   // stats
   stats: ["统计", "Statistics"], today: ["今天", "Today"], reviewsToday: ["今日复习", "Reviews today"], minutes: ["分钟", "min"], streak: ["连续天数", "Streak"],
   trueRetention: ["真实保留率（30 天）", "True retention (30d)"], target: ["目标", "Target"], forecast: ["未来 30 天到期预测", "30-day forecast"],
-  heatmap: ["学习热力图", "Activity"], reviewsPerDay: ["近 30 天复习量", "Reviews, last 30 days"], cardStates: ["卡片状态", "Card states"],
+  heatmap: ["学习热力图", "Activity"], reviewsLast30: ["近 30 天复习量", "Reviews, last 30 days"], cardStates: ["卡片状态", "Card states"],
   young: ["年轻（<21天）", "Young (<21d)"], mature: ["成熟（≥21天）", "Mature (≥21d)"], totalCards: ["卡片总数", "Total cards"], allDecks: ["全部牌组", "All decks"],
   // io
   ioTitle: ["导入导出", "Import & export"], exportTitle: ["导出", "Export"], importTitle: ["导入", "Import"],

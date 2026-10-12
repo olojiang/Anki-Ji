@@ -104,7 +104,7 @@ export default function DecksPage() {
           }}
           onDrop={(e) => { e.preventDefault(); onDrop(n, drag?.zone ?? "inside"); }}
           className={cx(
-            "group relative flex items-center gap-2 border-b border-border px-3 py-2.5 transition-colors last:border-b-0 hover:bg-muted/50",
+            "group relative flex items-center gap-2 border-t border-border px-3 py-2.5 transition-colors hover:bg-muted/50",
             drag?.id === n.id && "opacity-40",
             isOver && drag?.zone === "inside" && "bg-primary/10 ring-1 ring-inset ring-primary/40",
           )}
@@ -122,9 +122,9 @@ export default function DecksPage() {
             <span className="hidden shrink-0 text-xs font-normal text-faint sm:inline">{c.total}</span>
           </Link>
           <div className="flex shrink-0 items-center gap-1 text-right font-mono text-[13px] tabular-nums">
-            <span className={cx("w-10", c.new ? "text-primary" : "text-faint/60")}>{c.new}</span>
-            <span className={cx("w-10", c.learning ? "text-again" : "text-faint/60")}>{c.learning}</span>
-            <span className={cx("w-10", c.review ? "text-easy" : "text-faint/60")}>{c.review}</span>
+            <span className={cx("w-12", c.new ? "text-primary" : "text-faint/60")}>{c.new}</span>
+            <span className={cx("w-12", c.learning ? "text-again" : "text-faint/60")}>{c.learning}</span>
+            <span className={cx("w-12", c.review ? "text-easy" : "text-faint/60")}>{c.review}</span>
           </div>
           <div className="relative flex shrink-0 items-center">
             <Link href={`/study/${n.id}`} className="hidden h-8 w-8 items-center justify-center rounded-lg text-sub hover:bg-muted hover:text-primary sm:inline-flex" title={t("study")}><Play className="h-4 w-4" /></Link>
@@ -169,10 +169,10 @@ export default function DecksPage() {
         <Card className="overflow-visible">
           <div className="flex items-center gap-2 border-b border-border px-3 py-2 text-xs font-medium text-faint">
             <span className="flex-1 pl-11">{t("deck")}</span>
-            <span className="flex gap-1 text-right font-mono"><span className="w-10">{t("colNew")}</span><span className="w-10">{t("colLearn")}</span><span className="w-10">{t("colDue")}</span></span>
+            <span className="flex gap-1 text-right font-mono"><span className="w-12">{t("colNew")}</span><span className="w-12">{t("colLearn")}</span><span className="w-12">{t("colDue")}</span></span>
             <span className="w-8 sm:w-16" />
           </div>
-          <div>{tree.map((n) => row(n, 0))}</div>
+          <div className="[&>div:first-child>div:first-child]:border-t-0">{tree.map((n) => row(n, 0))}</div>
         </Card>
       )}
       {decks && decks.length > 1 && <p className="mt-3 text-xs text-faint">{t("dragHint")}</p>}

@@ -146,14 +146,14 @@ export function normalizeForCompare(b: Backup) {
   };
   const guid = new Map(b.notes.map((nt) => [nt.id, nt.guid]));
   const cardKey = new Map(b.cards.map((c) => [c.id, `${guid.get(c.noteId)}#${c.ord}`]));
-  const strip = <T extends object>(o: T, keys: string[]) => Object.fromEntries(Object.entries(o).filter(([k]) => !keys.includes(k)));
+  const strip = <T extends object>(o: T, keys: string[]): Record<string, unknown> => Object.fromEntries(Object.entries(o).filter(([k]) => !keys.includes(k)));
   const sortBy = <T>(arr: T[], f: (x: T) => string) => [...arr].sort((a, c) => f(a).localeCompare(f(c)));
   return {
     settings: b.settings, tags: [...b.tags].sort(),
     decks: sortBy(b.decks.map((d) => ({ ...strip(d, ["id", "parentId"]), path: path(d.id) })), (d) => String(d.path)),
-    notes: sortBy(b.notes.map((nt) => ({ ...strip(nt, ["id", "deckId"]), deck: path(nt.deckId) })), (x) => String(x.guid)),
+    notes: sortBy(b.notes.map((nt) => ({ ...strip(nt, ["id", "deckId"]), deck: path(nt.deckId) })), (x) => String((x as Record<string, unknown>).guid)),
     cards: sortBy(b.cards.map((c) => ({ ...strip(c, ["id", "noteId", "deckId", "homeDeckId"]), key: cardKey.get(c.id), deck: path(c.deckId), home: path(c.homeDeckId) })), (x) => String(x.key)),
-    revlog: sortBy(b.revlog.map((r) => ({ ...strip(r, ["id", "cardId", "deckId"]), card: cardKey.get(r.cardId), deck: path(r.deckId) })), (x) => `${x.card}${x.reviewedAt}`),
+    revlog: sortBy(b.revlog.map((r) => ({ ...strip(r, ["id", "cardId", "deckId"]), card: cardKey.get(r.cardId), deck: path(r.deckId) })), (x) => `${x.card}${(x as Record<string, unknown>).reviewedAt}`),
     media: sortBy(b.media.map((m) => strip(m, ["id"])), (m) => String(m.filename)),
   };
 }

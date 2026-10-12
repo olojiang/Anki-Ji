@@ -94,8 +94,8 @@ export async function moveNoteToIndex(uid: number, id: number, index: number) {
   const sibs = (await q("SELECT id, position FROM ak_notes WHERE user_id = $1 AND deck_id = $2 AND deleted_at IS NULL AND id <> $3 ORDER BY position, id", [uid, cur.deckId, id]))
     .map((r) => ({ id: Number(r.id), position: Number(r.position) }));
   const i = Math.max(0, Math.min(index, sibs.length));
-  let before = sibs[i - 1]?.position ?? null;
-  let after = sibs[i]?.position ?? null;
+  const before = sibs[i - 1]?.position ?? null;
+  const after = sibs[i]?.position ?? null;
   if (before != null && after != null && after - before < 1e-9) {
     // renumber the deck
     const ordered = [...sibs.slice(0, i).map((s) => s.id), id, ...sibs.slice(i).map((s) => s.id)];
@@ -104,7 +104,6 @@ export async function moveNoteToIndex(uid: number, id: number, index: number) {
     return;
   }
   const pos = positionBetween(before, after);
-  before = after = null;
   await q("UPDATE ak_notes SET position = $3 WHERE user_id = $1 AND id = $2", [uid, id, pos]);
   await q("UPDATE ak_cards SET position = $3 WHERE user_id = $1 AND note_id = $2", [uid, id, pos]);
 }

@@ -85,7 +85,7 @@ export default function StatsPage() {
           <div className="grid gap-4 lg:grid-cols-2">
             <Card className="p-5"><h3 className="mb-3 text-sm font-semibold">{t("forecast")}</h3><Bars values={s.forecast} labels={s.forecast.map((_, i) => fmt(s.todayIndex + i))} color="fill-easy" /></Card>
             <Card className="p-5">
-              <h3 className="mb-3 text-sm font-semibold">{t("reviewsPerDay")}</h3>
+              <h3 className="mb-3 text-sm font-semibold">{t("reviewsLast30")}</h3>
               <Bars values={s.reviewsByDay.map((d) => d.learn + d.review + d.relearn)} labels={s.reviewsByDay.map((d) => fmt(d.day))}
                 stacks={[{ v: s.reviewsByDay.map((d) => d.learn), cls: "fill-primary" }, { v: s.reviewsByDay.map((d) => d.review), cls: "fill-easy" }, { v: s.reviewsByDay.map((d) => d.relearn), cls: "fill-again" }]} />
               <div className="mt-2 flex gap-4 text-xs text-sub"><Legend cls="bg-primary" label={t("stLearning")} /><Legend cls="bg-easy" label={t("stReview")} /><Legend cls="bg-again" label={t("stRelearning")} /></div>

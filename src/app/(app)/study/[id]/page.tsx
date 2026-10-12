@@ -147,7 +147,7 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
           </Card>
           <div className="sticky bottom-0 mt-4 bg-gradient-to-t from-bg via-bg to-transparent pb-3 pt-2">
             {!revealed ? (
-              <Button variant="primary" size="lg" className="w-full" onClick={() => setRevealed(true)}>{t("showAnswer")} <Kbd>Space</Kbd></Button>
+              <Button variant="primary" size="lg" className="w-full" onClick={() => setRevealed(true)}>{t("showAnswer")} <span className="hidden sm:inline"><Kbd>Space</Kbd></span></Button>
             ) : (
               <div className="grid grid-cols-4 gap-2">
                 {RATING.map((b) => (
