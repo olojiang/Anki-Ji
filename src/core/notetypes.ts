@@ -32,6 +32,8 @@ export interface NoteTypeDef {
   sourceKey?: string | null; // e.g. "anki:<model id>" for imported models (re-import reuses the type)
   noteCount?: number;
 }
+/** A user's note type as stored in the DB (numeric id). */
+export type CustomNoteType = NoteTypeDef & { id: number };
 export type FieldValues = Record<string, string>; // field id → value
 export type IdGen = () => string;
 
@@ -311,7 +313,7 @@ export function normalizeNoteType(input: Partial<NoteTypeDef> & Record<string, u
   const str = (v: unknown, max = 100_000) => (typeof v === "string" ? v : "").slice(0, max);
   const usedIds = new Set<string>();
   const fields: NtField[] = (Array.isArray(input.fields) ? input.fields : []).slice(0, 100).map((raw) => {
-    const f = (raw ?? {}) as Record<string, unknown>;
+    const f = (raw ?? {}) as unknown as Record<string, unknown>;
     let id = typeof f.id === "string" && /^[\w-]{1,40}$/.test(f.id) && !usedIds.has(f.id) ? f.id : "";
     while (!id || usedIds.has(id)) id = idGen();
     usedIds.add(id);
@@ -321,7 +323,7 @@ export function normalizeNoteType(input: Partial<NoteTypeDef> & Record<string, u
     if (f.rtl) out.rtl = true;
     return out;
   });
-  const rawT = (Array.isArray(input.templates) ? input.templates : []).slice(0, 50).map((raw) => (raw ?? {}) as Record<string, unknown>);
+  const rawT = (Array.isArray(input.templates) ? input.templates : []).slice(0, 50).map((raw) => (raw ?? {}) as unknown as Record<string, unknown>);
   const usedOrds = new Set<number>();
   const ords = rawT.map((t) => { const o = Number(t.ord); if (Number.isInteger(o) && o >= 0 && o < 10_000 && !usedOrds.has(o)) { usedOrds.add(o); return o; } return -1; });
   let next = usedOrds.size ? Math.max(...usedOrds) + 1 : 0;

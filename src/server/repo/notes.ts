@@ -7,27 +7,39 @@ import { positionBetween } from "@/core/tree";
 import { BadRequestError, requireDeck } from "./decks";
 import { addTags, normalizeTag } from "./tags";
 import { listCardsForNote } from "./cards";
+import { getNoteType } from "./notetypes";
+import { planCardChanges, type NoteTypeDef } from "@/core/notetypes";
 
 const uuid = () => (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`);
 const cleanTags = (tags: string[]) => [...new Set((tags ?? []).map(normalizeTag).filter(Boolean))];
 
-export interface NoteInput { deckId: number; type: NoteType; fields: NoteFields; tags: string[]; guid?: string; position?: number }
+export interface NoteInput { deckId: number; type: NoteType; fields: NoteFields; tags: string[]; guid?: string; position?: number; notetypeId?: number | null }
+
+/** The custom note type a "custom" note needs (owned by the user), or null for built-in types. */
+async function requireNoteType(uid: number, type: NoteType, notetypeId: number | null | undefined): Promise<NoteTypeDef | null> {
+  if (type !== "custom") return null;
+  if (notetypeId == null) throw new BadRequestError("notetype_required");
+  const nt = await getNoteType(uid, Number(notetypeId));
+  if (!nt) throw new BadRequestError("notetype_not_found");
+  return nt;
+}
 
 export async function createNote(uid: number, input: NoteInput): Promise<Note> {
-  if (!NOTE_TYPES.includes(input.type)) throw new BadRequestError("invalid_type");
+  if (!NOTE_TYPES.includes(input.type) && input.type !== "custom") throw new BadRequestError("invalid_type");
   await requireDeck(uid, input.deckId);
-  const fields = cleanFields(input.type, input.fields ?? {});
-  const err = validateNote(input.type, fields);
+  const nt = await requireNoteType(uid, input.type, input.notetypeId);
+  const fields = cleanFields(input.type, input.fields ?? {}, nt);
+  const err = validateNote(input.type, fields, nt);
   if (err) throw new BadRequestError(err);
   const tags = cleanTags(input.tags);
   const pos = input.position ?? Number((await q("SELECT COALESCE(MAX(position), 0) + 1 AS p FROM ak_notes WHERE user_id = $1 AND deck_id = $2", [uid, input.deckId]))[0].p);
   const rows = await q(
-    `INSERT INTO ak_notes (user_id, deck_id, guid, type, fields, tags, position, sort_field, search_text)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-    [uid, input.deckId, input.guid ?? uuid(), input.type, JSON.stringify(fields), tags, pos, sortField(input.type, fields), searchText(input.type, fields)],
+    `INSERT INTO ak_notes (user_id, deck_id, guid, type, fields, tags, position, sort_field, search_text, notetype_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+    [uid, input.deckId, input.guid ?? uuid(), input.type, JSON.stringify(fields), tags, pos, sortField(input.type, fields, nt), searchText(input.type, fields), nt ? nt.id : null],
   );
   const note = toNote(rows[0]);
-  const ords = cardOrdinals(input.type, fields);
+  const ords = cardOrdinals(input.type, fields, nt);
   if (ords.length) {
     await q("INSERT INTO ak_cards (user_id, note_id, deck_id, ord, position) SELECT $1, $2, $3, unnest($4::int[]), $5", [uid, note.id, input.deckId, ords, pos]);
   }
@@ -35,23 +47,30 @@ export async function createNote(uid: number, input: NoteInput): Promise<Note> {
   return note;
 }
 
-export async function getNote(uid: number, id: number): Promise<(Note & { cards: Card[] }) | null> {
+export async function getNote(uid: number, id: number): Promise<(Note & { cards: Card[]; noteType?: NoteTypeDef | null }) | null> {
   const rows = await q("SELECT * FROM ak_notes WHERE user_id = $1 AND id = $2", [uid, id]);
   if (!rows[0]) return null;
-  return { ...toNote(rows[0]), cards: await listCardsForNote(uid, id) };
+  const note = toNote(rows[0]);
+  const noteType = note.type === "custom" && note.notetypeId != null ? await getNoteType(uid, note.notetypeId) : undefined;
+  return { ...note, ...(noteType !== undefined ? { noteType } : {}), cards: await listCardsForNote(uid, id) };
 }
 
 export async function updateNote(uid: number, id: number, patch: { fields?: NoteFields; tags?: string[]; deckId?: number; type?: NoteType }): Promise<boolean> {
   const cur = await getNote(uid, id);
   if (!cur) return false;
-  const type = patch.type && NOTE_TYPES.includes(patch.type) ? patch.type : cur.type;
-  const fields = cleanFields(type, patch.fields ? { ...cur.fields, ...patch.fields } : cur.fields);
-  const err = validateNote(type, fields);
+  // switching between built-in and custom types is not supported (fields have different shapes)
+  const type = cur.type !== "custom" && patch.type && NOTE_TYPES.includes(patch.type) ? patch.type : cur.type;
+  const nt = type === "custom" ? cur.noteType ?? null : null;
+  if (type === "custom" && !nt) throw new BadRequestError("notetype_not_found");
+  const fields = cleanFields(type, patch.fields ? { ...cur.fields, ...patch.fields } : cur.fields, nt);
+  const err = validateNote(type, fields, nt);
   if (err) throw new BadRequestError(err);
   const tags = patch.tags ? cleanTags(patch.tags) : cur.tags;
   await q("UPDATE ak_notes SET type = $3, fields = $4, tags = $5, sort_field = $6, search_text = $7, updated_at = now() WHERE user_id = $1 AND id = $2",
-    [uid, id, type, JSON.stringify(fields), tags, sortField(type, fields), searchText(type, fields)]);
-  const d = diffOrdinals(cur.cards.map((c) => c.ord), cardOrdinals(type, fields));
+    [uid, id, type, JSON.stringify(fields), tags, sortField(type, fields, nt), searchText(type, fields)]);
+  const d = nt
+    ? planCardChanges(cur.cards, cardOrdinals(type, fields, nt), nt.kind === "cloze" ? null : nt.templates.map((t) => t.ord))
+    : diffOrdinals(cur.cards.map((c) => c.ord), cardOrdinals(type, fields));
   if (d.remove.length) await q("DELETE FROM ak_cards WHERE user_id = $1 AND note_id = $2 AND ord = ANY($3::int[])", [uid, id, d.remove]);
   if (d.add.length) await q("INSERT INTO ak_cards (user_id, note_id, deck_id, ord, position) SELECT $1, $2, $3, unnest($4::int[]), $5", [uid, id, cur.deckId, d.add, cur.position]);
   if (patch.deckId && patch.deckId !== cur.deckId) await moveNotes(uid, [id], patch.deckId);

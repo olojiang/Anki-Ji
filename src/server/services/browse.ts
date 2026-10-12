@@ -11,6 +11,7 @@ export interface BrowseRow {
   cardId: number; noteId: number; deckId: number; homeDeckId: number | null; deckPath: string; type: NoteType; ord: number; sortField: string; tags: string[];
   state: CardState; due: string; dueDay: number | null; interval: number; suspended: boolean; buried: boolean; flag: number; leech: boolean;
   reps: number; lapses: number; createdAt: string; position: number; stability: number; difficulty: number; retrievability: number | null;
+  noteTypeName?: string; // custom note types
 }
 
 export type BrowseSort = "manual" | "created" | "due" | "sortField" | "interval" | "lapses" | "difficulty";
@@ -23,8 +24,8 @@ export async function searchNotes(uid: number, query: string, opts: { sort?: Bro
   const cfgById = new Map(decks.map((d) => [d.id, d.config]));
   const rows = await q(
     `SELECT c.id, c.note_id, c.deck_id, c.home_deck_id, c.ord, c.state, c.due, c.scheduled_days, c.suspended, c.buried_day, c.flag, c.leech, c.reps, c.lapses,
-            c.stability, c.difficulty, c.last_review, c.elapsed_days, c.step, c.ease, c.box, n.position, n.created_at, n.type, n.sort_field, n.search_text, n.tags
-     FROM ak_cards c JOIN ak_notes n ON n.id = c.note_id WHERE c.user_id = $1 AND n.deleted_at IS NULL`, [uid]);
+            c.stability, c.difficulty, c.last_review, c.elapsed_days, c.step, c.ease, c.box, n.position, n.created_at, n.type, n.sort_field, n.search_text, n.tags, t.name AS nt_name, t.kind AS nt_kind
+     FROM ak_cards c JOIN ak_notes n ON n.id = c.note_id LEFT JOIN ak_notetypes t ON t.id = n.notetype_id WHERE c.user_id = $1 AND n.deleted_at IS NULL`, [uid]);
   const ast = parseSearch(query);
   const paths = new Map<number, string>();
   const pathOf = (id: number) => { if (!paths.has(id)) paths.set(id, deckPath(decks, id)); return paths.get(id)!; };
@@ -40,10 +41,10 @@ export async function searchNotes(uid: number, query: string, opts: { sort?: Bro
     const type = r.type as NoteType;
     const ord = Number(r.ord);
     const item: SearchItem = {
-      text: `${r.search_text ?? ""}`, deckPath: pathOf(home ?? deckId), tags: (r.tags as string[]) ?? [], noteType: type, state, dueDay,
+      text: `${r.search_text ?? ""}`, deckPath: pathOf(home ?? deckId), tags: (r.tags as string[]) ?? [], noteType: type === "custom" && r.nt_name != null ? String(r.nt_name) : type, state, dueDay,
       suspended: !!r.suspended, buried: r.buried_day != null && Number(r.buried_day) >= ctx.today, flag: Number(r.flag), leech: !!r.leech,
       createdDay: dayIndex(created, ctx.tz, ctx.rollover), interval: Number(r.scheduled_days), lapses: Number(r.lapses), reps: Number(r.reps),
-      ord: type === "cloze" ? ord - 1 : ord,
+      ord: type === "cloze" || r.nt_kind === "cloze" ? ord - 1 : ord,
     };
     if (!matches(ast, item, { today: ctx.today }) && !(home != null && matches(ast, { ...item, deckPath: pathOf(deckId) }, { today: ctx.today }))) continue;
     const sched = {
@@ -57,6 +58,7 @@ export async function searchNotes(uid: number, query: string, opts: { sort?: Bro
       tags: item.tags, state, due: due.toISOString(), dueDay, interval: item.interval, suspended: item.suspended, buried: item.buried, flag: item.flag, leech: item.leech,
       reps: item.reps, lapses: item.lapses, createdAt: created.toISOString(), position: Number(r.position), stability: sched.stability, difficulty: sched.difficulty,
       retrievability: cfg ? createScheduler(cfg).retrievability(sched, ctx.now) : null,
+      ...(r.nt_name != null ? { noteTypeName: String(r.nt_name) } : {}),
     });
   }
   const sort = opts.sort ?? "manual";

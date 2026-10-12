@@ -1,11 +1,14 @@
 import { z } from "zod";
 import type { Algorithm, CardState, NoteFields, NoteType } from "../types";
+import type { NoteTypeDef } from "../notetypes";
 
 export const BACKUP_FORMAT = "anki-ji-backup";
 export const BACKUP_VERSION = 1;
 
 export interface DeckRecord { id: number; parentId: number | null; name: string; position: number; config: Record<string, unknown>; filtered: boolean; filter: Record<string, unknown> | null; createdAt: string }
-export interface NoteRecord { id: number; deckId: number; guid: string; type: NoteType; fields: NoteFields; tags: string[]; position: number; createdAt: string; updatedAt: string }
+export interface NoteRecord { id: number; deckId: number; guid: string; type: NoteType; fields: NoteFields; tags: string[]; position: number; createdAt: string; updatedAt: string; notetypeId?: number | null }
+/** A custom note type inside a backup; `id` is the source id that NoteRecord.notetypeId points at. */
+export type NoteTypeRecord = NoteTypeDef & { id: number };
 export interface CardRecord {
   id: number; noteId: number; deckId: number; homeDeckId: number | null; ord: number;
   state: CardState; due: string; stability: number; difficulty: number; elapsedDays: number; scheduledDays: number;
@@ -27,6 +30,7 @@ export interface Backup {
   cards: CardRecord[];
   revlog: RevlogRecord[];
   media: MediaRecord[];
+  noteTypes?: NoteTypeRecord[];
 }
 
 const iso = (v: unknown): string => (v instanceof Date ? v.toISOString() : typeof v === "string" ? v : new Date(Number(v) || 0).toISOString());
@@ -37,7 +41,10 @@ export function toDeckRecord(d: Record<string, unknown>): DeckRecord {
   return { id: n(d.id), parentId: d.parentId == null ? null : n(d.parentId), name: String(d.name ?? ""), position: n(d.position), config: (d.config as Record<string, unknown>) ?? {}, filtered: !!d.filtered, filter: (d.filter as Record<string, unknown>) ?? null, createdAt: iso(d.createdAt) };
 }
 export function toNoteRecord(x: Record<string, unknown>): NoteRecord {
-  return { id: n(x.id), deckId: n(x.deckId), guid: String(x.guid ?? ""), type: x.type as NoteType, fields: (x.fields as NoteFields) ?? {}, tags: (x.tags as string[]) ?? [], position: n(x.position), createdAt: iso(x.createdAt), updatedAt: iso(x.updatedAt ?? x.createdAt) };
+  return {
+    id: n(x.id), deckId: n(x.deckId), guid: String(x.guid ?? ""), type: x.type as NoteType, fields: (x.fields as NoteFields) ?? {}, tags: (x.tags as string[]) ?? [], position: n(x.position), createdAt: iso(x.createdAt), updatedAt: iso(x.updatedAt ?? x.createdAt),
+    ...(x.notetypeId != null ? { notetypeId: n(x.notetypeId) } : {}),
+  };
 }
 export function toCardRecord(c: Record<string, unknown>): CardRecord {
   return {
@@ -54,7 +61,7 @@ export function toRevlogRecord(r: Record<string, unknown>): RevlogRecord {
 export function createBackup(input: {
   exportedAt?: string; settings?: Record<string, unknown>; tags?: string[];
   decks: Record<string, unknown>[] | DeckRecord[]; notes: Record<string, unknown>[] | NoteRecord[]; cards: Record<string, unknown>[] | CardRecord[];
-  revlog: Record<string, unknown>[] | RevlogRecord[]; media?: MediaRecord[];
+  revlog: Record<string, unknown>[] | RevlogRecord[]; media?: MediaRecord[]; noteTypes?: NoteTypeRecord[];
 }): Backup {
   return {
     format: BACKUP_FORMAT, version: BACKUP_VERSION, app: "anki-ji",
@@ -66,6 +73,7 @@ export function createBackup(input: {
     cards: (input.cards as Record<string, unknown>[]).map(toCardRecord),
     revlog: (input.revlog as Record<string, unknown>[]).map(toRevlogRecord),
     media: input.media ?? [],
+    ...(input.noteTypes?.length ? { noteTypes: input.noteTypes } : {}),
   };
 }
 
@@ -90,6 +98,7 @@ export function parseBackup(input: string | unknown): Backup {
     exportedAt: String(o.exportedAt ?? ""), settings: (o.settings as Record<string, unknown>) ?? {}, tags: (o.tags as string[]) ?? [],
     decks: o.decks as Record<string, unknown>[], notes: o.notes as Record<string, unknown>[], cards: o.cards as Record<string, unknown>[],
     revlog: (o.revlog as Record<string, unknown>[]) ?? [], media: (o.media as MediaRecord[]) ?? [],
+    noteTypes: Array.isArray(o.noteTypes) ? (o.noteTypes as NoteTypeRecord[]) : undefined,
   });
 }
 
@@ -125,7 +134,10 @@ export function rewriteMediaInFields(fields: NoteFields, map: Record<string, str
   if (!keys.length) return fields;
   const rw = (s: string) => keys.reduce((acc, k) => acc.split(k).join(map[k]), s);
   const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(fields)) out[k] = typeof v === "string" ? rw(v) : Array.isArray(v) ? v.map((x) => (typeof x === "string" ? rw(x) : x)) : v;
+  for (const [k, v] of Object.entries(fields)) {
+    out[k] = typeof v === "string" ? rw(v) : Array.isArray(v) ? v.map((x) => (typeof x === "string" ? rw(x) : x))
+      : v && typeof v === "object" ? Object.fromEntries(Object.entries(v).map(([kk, x]) => [kk, typeof x === "string" ? rw(x) : x])) : v; // custom note values
+  }
   return out as NoteFields;
 }
 
