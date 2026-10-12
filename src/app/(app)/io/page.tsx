@@ -11,6 +11,7 @@ import { ImportPreview } from "@/components/io/ImportPreview";
 import { PasteImport } from "@/components/io/PasteImport";
 import { PREVIEW_SLOT, PreviewPlaceholder } from "@/components/io/ImportPreview";
 import { ti, importErrorMessage } from "@/lib/i18n-import";
+import { ApkgExport } from "@/components/interop/ApkgExport";
 
 export default function IOPage() {
   const { t, err, toast, locale } = useApp();
@@ -69,6 +70,7 @@ export default function IOPage() {
         <Card className="p-5">
           <CardHeader className="mb-5" icon={<IconChip tone="sky"><Download /></IconChip>} title={t("exportTitle")} />
           <div className="space-y-4">
+            <ApkgExport />
             <div className="rounded-xl border border-border bg-subtle p-4 transition-colors hover:border-border-strong">
               <div className="flex items-start gap-3">
                 <IconChip tone="teal" size="sm" className="mt-0.5"><FileJson /></IconChip>

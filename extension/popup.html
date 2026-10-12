@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Add to Anki-ji</title><link rel="stylesheet" href="style.css"></head>
+<body>
+  <div class="wrap popup" id="app">
+    <h1><img src="icons/icon32.png" alt="">Add to Anki-ji</h1>
+    <div id="setup" hidden>
+      <p class="status err">Set your Anki-ji server URL and API token first.</p>
+      <button class="primary" id="openOptions">Open settings</button>
+    </div>
+    <form id="form" hidden>
+      <div class="row">
+        <label><span>Deck</span><select id="deck"></select></label>
+        <label><span>Note type</span><select id="model"></select></label>
+      </div>
+      <label><span>Front <button type="button" class="small" id="clozeBtn" title="Make the selected text a cloze ({{c1::…}})">[…]</button></span><textarea id="front" rows="3" required></textarea></label>
+      <label><span id="backLabel">Back</span><textarea id="back" rows="4"></textarea></label>
+      <label><span>Tags</span><input id="tags" placeholder="space separated, e.g. web vocab"></label>
+      <div class="check"><input type="checkbox" id="includeSource" checked><span>Include source link</span></div>
+      <div class="src" id="src"></div>
+      <div class="actions">
+        <span class="status" id="status"></span>
+        <button class="primary" id="add" type="submit">Add <kbd>Ctrl</kbd>+<kbd>Enter</kbd></button>
+      </div>
+    </form>
+  </div>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>
