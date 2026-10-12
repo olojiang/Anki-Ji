@@ -89,12 +89,12 @@ export function MatchGame({ items, record, onFinish }: { items: StudyItem[]; rec
           <Pill tone="primary" mono><Timer className="h-3 w-3" />{fmtMs(now)}</Pill>
         </span>
       </div>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:grid-cols-4">
         {tiles.map((tile) => {
           const isGone = gone.has(tile.id), isSel = sel === tile.id, isBad = bad.includes(tile.id);
           return (
             <button key={tile.id} disabled={isGone} onClick={() => tap(tile)} aria-pressed={isSel}
-              className={cx("focus-ring flex min-h-[92px] items-center justify-center rounded-2xl border p-3 text-center text-[14px] leading-snug transition-all duration-200 sm:min-h-[112px] sm:text-[15px]",
+              className={cx("focus-ring flex min-h-[84px] items-center justify-center rounded-2xl border p-2 text-center text-[13.5px] leading-snug sm:p-3 transition-all duration-200 sm:min-h-[112px] sm:text-[15px]",
                 isGone ? "pointer-events-none scale-90 border-transparent bg-transparent opacity-0" :
                   isBad ? "border-danger/60 bg-danger/10 text-danger" :
                     isSel ? "border-primary/70 bg-primary/[0.08] text-fg shadow-[0_0_0_3px_rgb(var(--primary)/0.15)]" :
