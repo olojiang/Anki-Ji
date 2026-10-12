@@ -103,8 +103,8 @@ export async function parseImportFile(name: string, bytes: Uint8Array, opts: Imp
     case "backup": return whole(parseBackup(decode(bytes)));
     case "apkg": {
       if (!opts.loadSqlJs) throw new Error("sqljs_required");
-      const [{ readApkg, apkgToBackup }, SQL] = await Promise.all([import("./apkg"), opts.loadSqlJs()]);
-      return whole(apkgToBackup(await readApkg(bytes, SQL)));
+      const [{ readApkg, apkgToBackup }, { readApkgExtras, enrichApkgBackup }, SQL] = await Promise.all([import("./apkg"), import("./apkg-extras"), opts.loadSqlJs()]);
+      return whole(enrichApkgBackup(apkgToBackup(await readApkg(bytes, SQL)), await readApkgExtras(bytes, SQL)));
     }
     case "xlsx": { const { parseExcel } = await import("./xlsx"); return finish(format, parseExcel(bytes, { rootDeck: deck, sheetsAsDecks: opts.sheetsAsDecks })); }
     case "obsidian": return finish(format, await parseObsidianVault(bytes, { rootDeck: deck, headingsAsDecks: opts.headingsAsDecks }));
