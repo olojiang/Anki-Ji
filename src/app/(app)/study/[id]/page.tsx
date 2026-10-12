@@ -14,6 +14,7 @@ import { OfflineStudyBanner } from "@/components/offline/SyncStatus";
 import { OfflineUnavailable } from "@/components/offline/OfflineDecks";
 import { to } from "@/lib/i18n-offline";
 import type { Rating } from "@/core/types";
+import { pingAutoOptimize } from "@/lib/push-client";
 
 interface StudyCard extends RenderedCardDTO { cardId: number; noteId: number; deckId?: number; type: string; state: string; intervals: Record<string, string>; flag: number; leech: boolean; tags: string[]; retrievability: number | null; stability: number; difficulty: number; reps: number; lapses: number }
 interface StudyState { deck: { id: number; name: string; filtered: boolean }; counts: { new: number; learning: number; review: number }; card: StudyCard | null; nextLearningAt: string | null }
@@ -48,6 +49,7 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
     setSt(s); setRevealed(false); setTyped(""); setPicked([]); shownAt.current = Date.now();
   }, []);
   useEffect(() => { loadStudy().then(apply).catch((e) => (e?.code === "offline_unavailable" ? setUnavailable(true) : err(e))); }, [loadStudy, apply, err]);
+  useEffect(() => { if (st && !st.card && done > 0 && !offlineMode) pingAutoOptimize(); }, [st, done, offlineMode]); // session finished → lazy FSRS auto-optimize check
   // refresh when learning cards become due
   useEffect(() => {
     if (!st || st.card || !st.nextLearningAt) return;

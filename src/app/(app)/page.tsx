@@ -13,6 +13,7 @@ import { tm } from "@/lib/i18n-modes-batch";
 import { CloudDownload, CloudOff } from "lucide-react";
 import { OfflineDeckList, OfflineMark, useOfflineDecks } from "@/components/offline/OfflineDecks";
 import { isNetworkError } from "@/lib/offline/client";
+import { DailyGoalCard } from "@/components/DailyGoalCard";
 
 type Node = TreeNode<DeckDTO>;
 type DropZone = "before" | "after" | "inside";
@@ -175,6 +176,7 @@ export default function DecksPage() {
       />
       <div className={cx(decks && decks.length > 0 && "xl:grid xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start xl:gap-6 2xl:grid-cols-[minmax(0,1fr)_400px] 2xl:gap-8")}>
       <div className="min-w-0">
+      {decks && decks.length > 0 && <DailyGoalCard />}
       {decks && decks.length > 0 && (
         <div className="mb-6 grid grid-cols-3 gap-2 sm:gap-3">
           <Card className="relative overflow-hidden p-3 sm:p-4">

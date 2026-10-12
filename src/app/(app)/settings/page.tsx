@@ -9,6 +9,7 @@ import type { Me } from "@/components/Shell";
 import { ApiTokens } from "@/components/interop/ApiTokens";
 import { AiSettingsCard } from "@/components/ai/AiSettingsCard";
 import { TtsSettingsCard } from "@/components/tts/TtsSettingsCard";
+import { StudyPrefsCards } from "@/components/settings/StudyPrefsCards";
 
 export default function SettingsPage() {
   const { t, err, toast, setLocale } = useApp();
@@ -56,6 +57,7 @@ export default function SettingsPage() {
       </Card>
       <div id="ai" className="scroll-mt-20"><AiSettingsCard /></div>
       <TtsSettingsCard />
+      <StudyPrefsCards timezone={me.settings.timezone} />
       <Card className="space-y-5 p-5">
         <CardHeader icon={<IconChip tone="orange"><KeyRound /></IconChip>} title={t("changePassword")} />
         <div className="grid gap-3 sm:grid-cols-2">

@@ -7,6 +7,7 @@ import { Card, IconChip, PageHeader, ProgressRing, Spinner, cx, type Tone } from
 import { DeckPicker } from "@/components/DeckPicker";
 import { Bars, Heatmap, Legend } from "@/components/charts";
 import type { DeckDTO } from "@/lib/types";
+import { ResponseTimeCard } from "@/components/ResponseTimeCard";
 
 interface Stats {
   today: { reviews: number; minutes: number; again: number; newCards: number }; streak: number; todayIndex: number; heatmap: Record<string, number>;
@@ -86,6 +87,7 @@ export default function StatsPage() {
               <div className="mt-3 flex gap-4 text-xs text-sub"><Legend cls="bg-sky-500" label={t("stLearning")} /><Legend cls="bg-emerald-500" label={t("stReview")} /><Legend cls="bg-rose-500" label={t("stRelearning")} /></div>
             </ChartCard>
           </div>
+          <ResponseTimeCard deckId={deckId} />
         </div>
       )}
     </div>

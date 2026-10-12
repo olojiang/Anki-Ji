@@ -15,4 +15,4 @@ export async function middleware(req: NextRequest) {
   return NextResponse.next();
 }
 
-export const config = { matcher: ["/((?!api|_next|favicon|icon|manifest|sw\.js|sw-push|sql-wasm|.*\.(?:png|svg|ico|wasm|txt|zip)$).*)"] };
+export const config = { matcher: ["/((?!api|_next|favicon|icon|manifest|sw\\.js|sw-push|sql-wasm|.*\\.(?:png|svg|ico|wasm|txt|zip)$).*)"] };
