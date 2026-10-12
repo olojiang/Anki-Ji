@@ -51,7 +51,8 @@ export interface DeckConfig {
   learnAheadMinutes: number;
 }
 
-export type NoteType = "basic" | "basic_reverse" | "basic_optional_reverse" | "cloze" | "type_in" | "mcq" | "image_occlusion";
+export type NoteType = "basic" | "basic_reverse" | "basic_optional_reverse" | "cloze" | "type_in" | "mcq" | "image_occlusion" | "custom";
+/** Built-in (stock) types. "custom" notes use a user note type (core/notetypes.ts) and are not listed here. */
 export const NOTE_TYPES: NoteType[] = ["basic", "basic_reverse", "basic_optional_reverse", "cloze", "type_in", "mcq", "image_occlusion"];
 
 export interface OcclusionMask { x: number; y: number; w: number; h: number; label?: string } // percentages 0–100
@@ -70,4 +71,5 @@ export interface NoteFields {
   masks?: OcclusionMask[];
   header?: string;
   occlusionMode?: "hideOne" | "hideAll";
+  custom?: Record<string, string>; // custom note types: field id → value
 }
