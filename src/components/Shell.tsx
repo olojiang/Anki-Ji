@@ -17,6 +17,8 @@ import { cx } from "./ui";
 import { ThemeMenu } from "./ThemePicker";
 import { isTheme } from "@/lib/themes";
 import { tn } from "@/lib/i18n-notetypes";
+import { OfflineAgent } from "./offline/OfflineAgent";
+import { SyncStatus } from "./offline/SyncStatus";
 
 export interface Me { id: number; email: string; name: string; settings: { timezone: string; rolloverHour: number; locale: "zh" | "en"; theme: string } }
 
@@ -100,6 +102,7 @@ export function Shell({ children }: { children: ReactNode }) {
           </div>
           <div className="mt-1.5 flex items-center gap-0.5 border-t border-border pt-1.5">
             <ThemeMenu placement="up" />
+            <SyncStatus variant="mini" />
             <button onClick={toggleLocale} className="focus-ring inline-flex h-10 items-center gap-1 rounded-lg px-2 text-xs font-medium text-sub transition-colors hover:bg-muted hover:text-fg lg:h-8" title={t("language")}><Languages className="h-4 w-4" />{locale === "zh" ? "EN" : "中"}</button>
             <button onClick={logout} className="focus-ring ml-auto inline-flex h-10 w-10 items-center justify-center rounded-lg text-sub transition-colors hover:bg-rose-500/10 hover:text-danger lg:h-8 lg:w-8" title={t("logout")} aria-label={t("logout")}><LogOut className="h-4 w-4" /></button>
           </div>
@@ -128,6 +131,7 @@ export function Shell({ children }: { children: ReactNode }) {
         ))}
       </nav>
       <div className="flex flex-col items-center gap-1">
+        <SyncStatus variant="icon" />
         <ThemeMenu placement="up" className="[&>div]:left-0" />
         <button onClick={toggleLocale} className="focus-ring inline-flex h-11 w-11 items-center justify-center rounded-xl text-xs font-medium text-sub hover:bg-muted hover:text-fg" title={t("language")}>{locale === "zh" ? "EN" : "中"}</button>
         <button onClick={logout} className="focus-ring inline-flex h-11 w-11 items-center justify-center rounded-xl text-sub hover:bg-rose-500/10 hover:text-danger" title={t("logout")} aria-label={t("logout")}><LogOut className="h-4 w-4" /></button>
@@ -139,6 +143,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const tabs: NavItem[] = [decks, add, browse, stats];
   return (
     <div className="min-h-screen md:pl-[72px] lg:pl-60">
+      <OfflineAgent />
       {/* desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 border-r border-border bg-subtle/80 backdrop-blur-xl lg:block">{side}</aside>
       {/* tablet rail */}
@@ -148,6 +153,7 @@ export function Shell({ children }: { children: ReactNode }) {
         <button onClick={() => setOpen(true)} className="focus-ring inline-flex h-11 w-11 items-center justify-center rounded-xl text-sub hover:bg-muted hover:text-fg" aria-label="menu"><Menu className="h-5 w-5" /></button>
         <Link href="/" className="inline-flex h-11 items-center px-1"><Logo /></Link>
         <ThemeMenu placement="down" className="ml-auto [&>button]:h-11 [&>button]:px-3" />
+        <SyncStatus variant="compact" className="mr-1" />
       </header>
       {open && (
         <div className="fixed inset-0 z-40 md:hidden">

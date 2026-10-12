@@ -9,6 +9,11 @@ import { Button, Card, Spinner, Kbd, Pill, ProgressBar, IconChip, cx } from "@/c
 import { CardView, type RenderedCardDTO } from "@/components/CardView";
 import { tm } from "@/lib/i18n-modes-batch";
 import { StudyVoice } from "@/components/tts/StudyVoice";
+import { useStudySource } from "@/lib/offline/useStudySource";
+import { OfflineStudyBanner } from "@/components/offline/SyncStatus";
+import { OfflineUnavailable } from "@/components/offline/OfflineDecks";
+import { to } from "@/lib/i18n-offline";
+import type { Rating } from "@/core/types";
 
 interface StudyCard extends RenderedCardDTO { cardId: number; noteId: number; deckId?: number; type: string; state: string; intervals: Record<string, string>; flag: number; leech: boolean; tags: string[]; retrievability: number | null; stability: number; difficulty: number; reps: number; lapses: number }
 interface StudyState { deck: { id: number; name: string; filtered: boolean }; counts: { new: number; learning: number; review: number }; card: StudyCard | null; nextLearningAt: string | null }
@@ -24,6 +29,8 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
   const { id } = use(params);
   const deckId = Number(id);
   const { t, err, toast, locale } = useApp();
+  const { load: loadStudy, answer: answerStudy, undo: undoStudy, offline: offlineMode } = useStudySource<StudyState>(deckId);
+  const [unavailable, setUnavailable] = useState(false);
   const router = useRouter();
   const [st, setSt] = useState<StudyState | null>(null);
   const [revealed, setRevealed] = useState(false);
@@ -40,39 +47,40 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
     if (!s) return;
     setSt(s); setRevealed(false); setTyped(""); setPicked([]); shownAt.current = Date.now();
   }, []);
-  useEffect(() => { api<StudyState>(`/api/study/${deckId}`).then(apply).catch(err); }, [deckId, apply, err]);
+  useEffect(() => { loadStudy().then(apply).catch((e) => (e?.code === "offline_unavailable" ? setUnavailable(true) : err(e))); }, [loadStudy, apply, err]);
   // refresh when learning cards become due
   useEffect(() => {
     if (!st || st.card || !st.nextLearningAt) return;
     const ms = new Date(st.nextLearningAt).getTime() - Date.now();
     if (ms > 30 * 60000) return;
-    const h = setTimeout(() => api<StudyState>(`/api/study/${deckId}`).then(apply).catch(() => {}), Math.max(1000, ms - 20 * 60000 + 1000));
+    const h = setTimeout(() => loadStudy().then(apply).catch(() => {}), Math.max(1000, ms - 20 * 60000 + 1000));
     return () => clearTimeout(h);
-  }, [st, deckId, apply]);
+  }, [st, loadStudy, apply]);
 
   const rate = useCallback(async (rating: number) => {
     if (!st?.card || busy) return;
     setBusy(true);
     try {
-      const r = await api<{ leech: boolean; next: StudyState }>("/api/study/answer", { body: { cardId: st.card.cardId, rating, durationMs: Date.now() - shownAt.current, deckId } });
+      const r = await answerStudy(st.card.cardId, rating as Rating, Date.now() - shownAt.current);
       if (r.leech) toast(t("leechNotice"), "error");
       setDone((d) => d + 1);
       apply(r.next);
     } catch (e) { err(e); } finally { setBusy(false); }
-  }, [st, busy, deckId, apply, err, toast, t]);
+  }, [st, busy, answerStudy, apply, err, toast, t]);
 
   const undo = useCallback(async () => {
-    try { const r = await api<{ next: StudyState; undone: unknown }>("/api/study/undo", { body: { deckId } }); if (r.undone) { apply(r.next); setDone((d) => Math.max(0, d - 1)); } } catch (e) { err(e); }
-  }, [deckId, apply, err]);
+    try { const r = await undoStudy(); if (r.undone) { apply(r.next); setDone((d) => Math.max(0, d - 1)); } } catch (e) { err(e); }
+  }, [undoStudy, apply, err]);
 
   const action = useCallback(async (a: "suspend" | "bury" | "buryNote" | "flag") => {
     if (!st?.card) return;
+    if (offlineMode) { toast(to(locale, "offlineUnavailable"), "error"); return; }
     try {
       const flag = a === "flag" ? (st.card.flag ? 0 : 1) : undefined;
       const r = await api<{ next: StudyState }>("/api/study/action", { body: { cardId: st.card.cardId, action: a, flag, deckId } });
       if (a === "flag") setSt({ ...st, card: { ...st.card, flag: flag! } }); else apply(r.next);
     } catch (e) { err(e); }
-  }, [st, deckId, apply, err]);
+  }, [st, deckId, apply, err, offlineMode, toast, locale]);
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
@@ -102,7 +110,7 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
     setPicked((p) => (multi ? (p.includes(i) ? p.filter((x) => x !== i) : [...p, i]) : [i]));
   };
 
-  if (!st) return <div className="flex justify-center py-24"><Spinner /></div>;
+  if (!st) return unavailable ? <OfflineUnavailable /> : <div className="flex justify-center py-24"><Spinner /></div>;
   const c = st.counts;
   const card = st.card;
   const remaining = c.new + c.learning + c.review;
@@ -147,6 +155,7 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
           </>}
         </div>
       </div>
+      <OfflineStudyBanner show={offlineMode} />
       <div className="mb-6 flex items-center gap-3">
         <ProgressBar value={done + remaining ? done / (done + remaining) : 1} className="flex-1" />
         <span className="num shrink-0 text-[11.5px] text-faint">{done}<span className="opacity-50"> / </span>{done + remaining}</span>
