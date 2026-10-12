@@ -238,3 +238,18 @@ describe("export helpers (for .apkg export)", () => {
     expect(noteFieldValues(mcq, "mcq", { question: "Q", options: ["a", "b"], correct: [1], explanation: "E" })[0]).toBe("Q");
   });
 });
+
+describe("interop exporter adapter", () => {
+  it("produces a model + Anki note parts for a custom type", async () => {
+    const { customNoteTypeExporter } = await import("@/core/notetypes");
+    const t = { ...vocab(), templates: [vocab().templates[1], vocab().templates[0]] };
+    const ex = customNoteTypeExporter(t);
+    expect(ex.model).toMatchObject({ id: 1_770_000_000_007, name: "Vocab", kind: "standard", fields: ["Word", "Meaning", "Reading"] });
+    expect(ex.model.templates.map((x) => x.name)).toEqual(["Production", "Recognition"]);
+    const parts = ex.toAnki({ custom: { w: "**犬**", m: "dog", r: "" } }, [0, 1], { html: (s) => s.replace(/\*\*(.+)\*\*/, "<b>$1</b>"), media: (u) => u });
+    expect(parts).toEqual([{ guidSuffix: "", fields: ["<b>犬</b>", "dog", ""], cards: [{ ord: 0, ankiOrd: 1 }, { ord: 1, ankiOrd: 0 }] }]);
+    const raw = customNoteTypeExporter({ ...t, markdown: false, sourceKey: "anki:123" });
+    expect(raw.model.id).toBe(123);
+    expect(raw.toAnki({ custom: { w: '<img src="https://x/y.png">' } }, [0], { html: (s) => s, media: () => "y.png" })[0].fields[0]).toBe('<img src="y.png">');
+  });
+});

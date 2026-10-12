@@ -368,3 +368,21 @@ export function ourCardOrd(nt: NoteTypeDef, ankiOrd: number): number {
 }
 
 export { fieldIsEmpty };
+
+/**
+ * Adapter in the shape feat/interop's exporter expects ({ model: ModelDefinition, toAnki(fields, ords, ctx) }),
+ * without importing its types. Model ids are stable: an imported Anki model keeps its original id; otherwise
+ * 1_770_000_000_000 + our id. Markdown types convert values with ctx.html; raw-HTML types only remap media.
+ */
+export function customNoteTypeExporter(nt: NoteTypeDef) {
+  const anki = /^anki:(\d+)$/.exec(nt.sourceKey ?? "");
+  const id = anki ? Number(anki[1]) : 1_770_000_000_000 + (Number(nt.id) || 0);
+  const m = exportModel(nt);
+  return {
+    model: { id, name: nt.name, kind: nt.kind, fields: m.fields.map((f) => f.name), templates: m.templates.map((t) => ({ name: t.name, qfmt: t.qfmt, afmt: t.afmt })), css: nt.css },
+    toAnki(fields: NoteFields, ords: number[], ctx: { html(md: string): string; media(url: string): string }) {
+      const conv = (v: string) => (nt.markdown ? ctx.html(v) : v.replace(/(\ssrc=)(["'])([^"']+)\2/gi, (_, a, q, u) => `${a}${q}${ctx.media(u)}${q}`));
+      return [{ guidSuffix: "", fields: noteFieldValues(nt, "custom", fields).map(conv), cards: ords.map((ord) => ({ ord, ankiOrd: ankiCardOrd(nt, ord) })) }];
+    },
+  };
+}
