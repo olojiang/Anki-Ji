@@ -1,5 +1,5 @@
 "use client";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import Link from "next/link";
 import { Brain, Layers, ArrowLeftRight, Languages, ArrowRight, Flame } from "lucide-react";
 import { useApp } from "./providers";
@@ -94,19 +94,28 @@ function ProductVisual() {
   );
 }
 
+/** Same-origin path from ?next= (e.g. back to a shared deck after logging in). */
+function safeNext(): string | null {
+  if (typeof window === "undefined") return null;
+  const n = new URLSearchParams(window.location.search).get("next");
+  return n && n.startsWith("/") && !n.startsWith("//") && !n.startsWith("/\\") ? n : null;
+}
+
 export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const { t, err, locale, setLocale } = useApp();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [next, setNext] = useState<string | null>(null);
+  useEffect(() => setNext(safeNext()), []);
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
     try {
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
       await api(`/api/auth/${mode}`, { body: mode === "login" ? { email, password } : { email, password, name, locale, timezone: tz } });
-      window.location.href = "/";
+      window.location.href = safeNext() ?? "/";
     } catch (e2) { err(e2); setBusy(false); }
   };
   const points = [
@@ -175,7 +184,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           <div className="my-7 flex items-center gap-3 text-xs text-faint"><span className="h-px flex-1 bg-border" />Anki-ji<span className="h-px flex-1 bg-border" /></div>
           <p className="text-center text-[13.5px] text-sub">
             {mode === "login" ? t("noAccount") : t("haveAccount")}{" "}
-            <Link className="inline-flex h-11 items-center px-1 font-medium text-primary underline-offset-4 hover:underline sm:h-auto" href={mode === "login" ? "/register" : "/login"}>{mode === "login" ? t("register") : t("login")}</Link>
+            <Link className="inline-flex h-11 items-center px-1 font-medium text-primary underline-offset-4 hover:underline sm:h-auto" href={(mode === "login" ? "/register" : "/login") + (next ? `?next=${encodeURIComponent(next)}` : "")}>{mode === "login" ? t("register") : t("login")}</Link>
           </p>
           <p className="mt-10 hidden items-center justify-center gap-1.5 text-xs text-faint sm:flex"><Kbd>Enter</Kbd> {mode === "login" ? t("login") : t("register")}</p>
         </div>

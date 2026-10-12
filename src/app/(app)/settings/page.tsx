@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { User, Palette, CalendarClock, KeyRound, AlertTriangle } from "lucide-react";
 import { Button, Card, CardHeader, Field, IconChip, Input, Modal, PageHeader, Select, Spinner } from "@/components/ui";
 import { ThemeGrid } from "@/components/ThemePicker";
+import { ReadingSettingsCard } from "@/components/share-ir/ReadingSettingsCard";
 import type { Me } from "@/components/Shell";
 import { ApiTokens } from "@/components/interop/ApiTokens";
 import { AiSettingsCard } from "@/components/ai/AiSettingsCard";
@@ -58,6 +59,7 @@ export default function SettingsPage() {
       <div id="ai" className="scroll-mt-20"><AiSettingsCard /></div>
       <TtsSettingsCard />
       <StudyPrefsCards timezone={me.settings.timezone} />
+      <ReadingSettingsCard />
       <Card className="space-y-5 p-5">
         <CardHeader icon={<IconChip tone="orange"><KeyRound /></IconChip>} title={t("changePassword")} />
         <div className="grid gap-3 sm:grid-cols-2">

@@ -5,6 +5,7 @@ import { MODES_BATCH_STATEMENTS } from "./schema/modes-batch";
 import { AI_TTS_STATEMENTS } from "./schema/ai-tts";
 import { OFFLINE_SCHEMA } from "./schema/offline";
 import { FSRS_REMIND_STATEMENTS } from "./schema/fsrs-remind";
+import { SHARE_IR_STATEMENTS } from "./schema/share-ir";
 
 // Dev/test only: point the HTTP driver at a local Neon-compatible endpoint (PGlite shim).
 if (process.env.NEON_FETCH_ENDPOINT) neonConfig.fetchEndpoint = process.env.NEON_FETCH_ENDPOINT;
@@ -140,6 +141,7 @@ const STATEMENTS = [
   ...AI_TTS_STATEMENTS,
   ...OFFLINE_SCHEMA,
   ...FSRS_REMIND_STATEMENTS,
+  ...SHARE_IR_STATEMENTS,
 ];
 
 let schemaPromise: Promise<void> | null = null;
