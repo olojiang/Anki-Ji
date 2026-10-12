@@ -46,7 +46,7 @@ export function ApkgExport() {
               {deckOptions(decks).map((d) => <option key={d.id} value={d.id}>{"\u00A0\u00A0".repeat(d.depth) + (d.depth ? "└ " : "") + d.name}</option>)}
             </Select>
           </label>
-          <div className="mt-2 flex flex-col">
+          <div className="mt-2 flex flex-col gap-1.5">
             <Toggle checked={sched} onChange={setSched} label={<span className="text-xs text-sub">{tx(locale, "apkgScheduling")}</span>} />
             <Toggle checked={media} onChange={setMedia} label={<span className="text-xs text-sub">{tx(locale, "apkgMedia")}</span>} />
           </div>
