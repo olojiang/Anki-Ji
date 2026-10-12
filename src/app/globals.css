@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Teal primary. No purple / indigo / blue-violet anywhere by design. */
+:root {
+  --bg: 250 250 249;
+  --surface: 255 255 255;
+  --muted: 244 244 242;
+  --border: 229 229 226;
+  --fg: 23 23 23;
+  --sub: 87 87 84;
+  --faint: 140 140 136;
+  --primary: 13 148 136;
+  --primary-fg: 255 255 255;
+  --accent: 240 253 250;
+  --again: 220 38 38;
+  --hard: 217 119 6;
+  --good: 13 148 136;
+  --easy: 22 163 74;
+  color-scheme: light;
+}
+.dark {
+  --bg: 12 13 13;
+  --surface: 22 23 23;
+  --muted: 32 34 34;
+  --border: 44 46 46;
+  --fg: 236 236 234;
+  --sub: 170 170 166;
+  --faint: 120 120 116;
+  --primary: 45 212 191;
+  --primary-fg: 4 47 46;
+  --accent: 19 41 39;
+  --again: 248 113 113;
+  --hard: 251 191 36;
+  --good: 45 212 191;
+  --easy: 74 222 128;
+  color-scheme: dark;
+}
+
+html, body { background: rgb(var(--bg)); color: rgb(var(--fg)); }
+body { font-feature-settings: "cv11", "ss01"; -webkit-font-smoothing: antialiased; }
+::selection { background: rgb(var(--primary) / 0.25); }
+
+.focus-ring { @apply outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg; }
+
+/* Card content (rendered markdown) */
+.prose-card { line-height: 1.7; word-break: break-word; overflow-wrap: anywhere; }
+.prose-card > * + * { margin-top: 0.75em; }
+.prose-card h1 { font-size: 1.6em; font-weight: 650; }
+.prose-card h2 { font-size: 1.35em; font-weight: 650; }
+.prose-card h3 { font-size: 1.15em; font-weight: 600; }
+.prose-card a { color: rgb(var(--primary)); text-decoration: underline; text-underline-offset: 3px; }
+.prose-card ul { list-style: disc; padding-left: 1.4em; }
+.prose-card ol { list-style: decimal; padding-left: 1.4em; }
+.prose-card blockquote { border-left: 3px solid rgb(var(--border)); padding-left: 0.9em; color: rgb(var(--sub)); }
+.prose-card code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.88em; background: rgb(var(--muted)); padding: 0.1em 0.35em; border-radius: 0.35em; }
+.prose-card pre { background: rgb(var(--muted)); border: 1px solid rgb(var(--border)); border-radius: 0.6rem; padding: 0.9em 1em; overflow-x: auto; text-align: left; }
+.prose-card pre code { background: transparent; padding: 0; font-size: 0.85em; }
+.prose-card img { max-width: 100%; max-height: 420px; border-radius: 0.5rem; display: inline-block; }
+.prose-card table { border-collapse: collapse; margin: 0 auto; }
+.prose-card th, .prose-card td { border: 1px solid rgb(var(--border)); padding: 0.35em 0.7em; }
+.prose-card hr { border-color: rgb(var(--border)); }
+.prose-card audio { margin: 0 auto; }
+.prose-card video, .prose-card iframe { max-width: 100%; border-radius: 0.6rem; margin: 0 auto; }
+.prose-card .katex-display { overflow-x: auto; overflow-y: hidden; }
+.cloze { color: rgb(var(--primary)); font-weight: 650; }
+
+/* highlight.js – neutral palette that works in both themes */
+.hljs-keyword, .hljs-selector-tag, .hljs-built_in { color: #0f766e; }
+.hljs-string, .hljs-attr { color: #b45309; }
+.hljs-number, .hljs-literal { color: #be123c; }
+.hljs-comment { color: rgb(var(--faint)); font-style: italic; }
+.hljs-title, .hljs-function { color: #0369a1; }
+.dark .hljs-keyword, .dark .hljs-selector-tag, .dark .hljs-built_in { color: #5eead4; }
+.dark .hljs-string, .dark .hljs-attr { color: #fcd34d; }
+.dark .hljs-number, .dark .hljs-literal { color: #fda4af; }
+.dark .hljs-title, .dark .hljs-function { color: #7dd3fc; }
+
+.scrollbar-thin::-webkit-scrollbar { width: 8px; height: 8px; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: rgb(var(--border)); border-radius: 8px; }
